@@ -58,7 +58,7 @@ export class Sword {
     this.rig.add(h.group);
     camera.add(this.rig);
     camera.add(h.arm);
-    this.elbow = new THREE.Vector3(0.30, -0.78, 0.10);
+    this.elbow = new THREE.Vector3(0.27, -0.74, 0.16); this.clashK = 0;
 
     // blade core
     this.coreMat = new THREE.ShaderMaterial({
@@ -139,6 +139,8 @@ export class Sword {
   }
   toggle() { return this.isOn ? this.retract() : this.ignite(); }
   disturb(k = 1) { this.disturbed = Math.max(this.disturbed, k); }
+  // a bolt just met the blade: the whole blade flares for a beat
+  clash(k = 1) { this.clashK = Math.max(this.clashK, k); }
 
   setTargets(root, tip) { this.rootT.copy(root); this.tipT.copy(tip); }
   snapPose() { this.root.copy(this.rootT); this.tip.copy(this.tipT); this.tipVel.set(0, 0, 0); this.hist.length = 0; }
@@ -168,7 +170,7 @@ export class Sword {
     const armLen = _b.length();
     this.h.arm.position.copy(_a);
     this.h.arm.quaternion.setFromUnitVectors(_up, _b.divideScalar(armLen));
-    this.h.fore.scale.y = Math.max(0.2, armLen + 0.3);
+    this.h.fore.scale.y = Math.max(0.2, armLen + 0.1);
 
     // ---------- lifecycle
     this.t += dt;
@@ -212,6 +214,7 @@ export class Sword {
     }
     this.tipFlare = tipFlare;
     this.disturbed = Math.max(0, this.disturbed - dt * 1.6);
+    this.clashK = Math.max(0, this.clashK - dt * 7);
     this.over = damp(this.over, this.overTarget || 0, 5, dt);
 
     // ---------- flicker (the blade is never perfectly still)
@@ -241,7 +244,7 @@ export class Sword {
     cu.uRad.value = BLADE_RAD * (1 + this.over * 0.35 + (this.state === 'igniting' ? 0.6 * Math.exp(-Math.max(0, t - 0.085) * 6) : 0));
     const hu = this.halo.material.uniforms;
     hu.uA.value.copy(this.A); hu.uB.value.copy(this.B);
-    hu.uPower.value = P * (1 + this.swing * 0.5 + this.over * 0.5) * (this.len > 0.001 ? 1 : 0);
+    hu.uPower.value = P * (1 + this.swing * 0.5 + this.over * 0.5 + this.clashK * 1.3) * (this.len > 0.001 ? 1 : 0);
     hu.uInstab.value = instab; hu.uTip.value = tipFlare; hu.uCore.value = cu.uRad.value;
     this.halo.visible = this.len > 0.001;
 

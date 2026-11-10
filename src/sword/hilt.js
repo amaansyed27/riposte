@@ -136,39 +136,46 @@ export function buildHilt() {
   const bowPlate = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([P(0.0625, -0.150), P(0.0655, -0.185), P(0.0625, -0.225)]), 12, 0.0052, 10), M.dark);
   g.add(bowPlate);
 
-  // --- gauntlet
+  // --- gauntlet: a closed fist around the grip. Fingers wrap the far side, thumb locks over them, heel of the palm faces the player.
   const hand = new THREE.Group();
-  const tor = new THREE.TorusGeometry(0.0272, 0.0098, 10, 22, 4.3); tor.rotateX(Math.PI / 2);
-  const kAng = Math.atan2(kd.z, kd.x);
-  for (let i = 0; i < 4; i++) {
-    const f = new THREE.Mesh(tor, M.glove);
-    f.position.y = -0.170 - i * 0.0215; f.rotation.y = 2.15 - kAng; f.scale.setScalar(1 - i * 0.035);
-    hand.add(f);
-    const k = new THREE.Mesh(new THREE.BoxGeometry(0.017, 0.016, 0.008), M.dark);
-    k.position.copy(kd).multiplyScalar(0.0385).setY(f.position.y); k.lookAt(k.position.clone().add(kd));
-    hand.add(k);
-  }
-  const palm = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), M.gloveSoft);
-  palm.scale.set(0.031, 0.050, 0.026); palm.position.set(-0.004, -0.204, 0.020); hand.add(palm);
-  const back = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), M.glove);
-  back.scale.set(0.020, 0.040, 0.030); back.position.set(0.026, -0.205, 0.012); hand.add(back);
-  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.0105, 0.034, 6, 12), M.glove);
-  thumb.position.set(-0.012, -0.163, 0.024); thumb.rotation.set(0.25, 0, 1.15); hand.add(thumb);
-  const fdir = new THREE.Vector3(0.20, -0.42, 0.88).normalize();
-  const palmC = new THREE.Vector3(0.006, -0.212, 0.022);
   const yAxis = new THREE.Vector3(0, 1, 0);
-  const wristBall = new THREE.Mesh(new THREE.SphereGeometry(0.033, 16, 12), M.gloveSoft);
-  wristBall.position.copy(palmC).addScaledVector(fdir, 0.035); hand.add(wristBall);
-  // forearm (attached to the camera by the sword; +Y runs wrist -> elbow, unit length)
-  const arm = new THREE.Group();
-  const cuffG = new THREE.CylinderGeometry(0.041, 0.035, 0.085, 24); cuffG.translate(0, 0.0425, 0);
-  const cuff = new THREE.Mesh(cuffG, M.glove); arm.add(cuff);
-  const seamM = new THREE.Mesh(new THREE.TorusGeometry(0.0418, 0.0014, 8, 40), M.seam); seamM.rotation.x = Math.PI / 2; seamM.position.y = 0.072; arm.add(seamM);
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.012), M.dark); plate.position.set(0, 0.16, 0.047); arm.add(plate);
-  const foreG = new THREE.CylinderGeometry(0.062, 0.040, 1, 24); foreG.translate(0, 0.5, 0);
-  const fore = new THREE.Mesh(foreG, M.gloveSoft); fore.position.y = 0.08; arm.add(fore);
-  const wrist = palmC.clone().addScaledVector(fdir, 0.03);
+  const kAng = Math.atan2(kd.z, kd.x);
+  const tor = new THREE.TorusGeometry(0.0268, 0.0086, 12, 26, 4.25); tor.rotateX(Math.PI / 2);
+  const plateG = new THREE.TorusGeometry(0.0268, 0.0098, 8, 8, 0.52); plateG.rotateX(Math.PI / 2);
+  for (let i = 0; i < 4; i++) {
+    const y = -0.170 - i * 0.0200, sc = 1 - i * 0.03;
+    const f = new THREE.Mesh(tor, M.gloveSoft); f.position.y = y; f.rotation.y = 2.125 - kAng; f.scale.setScalar(sc); hand.add(f);
+    // three armour segments per finger (proximal, middle, tip) so the wrap reads as jointed, not as a hoop
+    for (const off of [-0.95, -0.28, 0.42]) {
+      const p = new THREE.Mesh(plateG, M.glove); p.position.y = y; p.rotation.y = -kAng - off + 0.26; p.scale.set(sc, 0.82, sc); hand.add(p);
+    }
+  }
+  const knuckle = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.040, 0.084, 20, 1, true, 0, 1.25), M.dark);
+  knuckle.position.y = -0.200; knuckle.rotation.y = Math.PI / 2 - kAng - 0.625; knuckle.material = M.dark; hand.add(knuckle);
+  const palmG = new THREE.CapsuleGeometry(0.019, 0.050, 8, 16);
+  const palm = new THREE.Mesh(palmG, M.gloveSoft); palm.scale.set(1.45, 1, 0.95); palm.position.set(0.002, -0.2015, 0.021); hand.add(palm);
+  const backPlate = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.044, 6, 12), M.glove);
+  backPlate.scale.set(0.7, 1, 1.5); backPlate.position.set(0.034, -0.200, 0.006); hand.add(backPlate);
+  const th1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.0115, 0.026, 6, 12), M.gloveSoft);
+  th1.position.set(-0.020, -0.174, 0.030); th1.rotation.set(0.5, 0, 0.75); hand.add(th1);
+  const th2 = new THREE.Mesh(new THREE.CapsuleGeometry(0.0098, 0.024, 6, 12), M.glove);
+  th2.position.set(-0.031, -0.158, 0.012); th2.rotation.set(1.25, 0, 0.35); hand.add(th2);
+  const fdir = new THREE.Vector3(0.20, -0.42, 0.88).normalize();
+  const palmC = new THREE.Vector3(0.006, -0.214, 0.026);
+  const wristJ = new THREE.Mesh(new THREE.SphereGeometry(0.0285, 18, 12), M.gloveSoft);
+  wristJ.scale.set(1.15, 1, 0.9); wristJ.position.copy(palmC).addScaledVector(fdir, 0.026); hand.add(wristJ);
   g.add(hand);
+  // forearm vambrace (attached to the camera by the sword; +Y runs wrist -> elbow). Overlapping plates, lit seams.
+  const arm = new THREE.Group();
+  const seg = (r0, r1, y0, y1, mat) => { const geo = new THREE.CylinderGeometry(r1, r0, y1 - y0, 28); geo.translate(0, (y0 + y1) / 2, 0); const m = new THREE.Mesh(geo, mat); m.scale.set(1.12, 1, 0.84); arm.add(m); return m; };
+  const seamAt = (r, y) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.0016, 8, 44), M.seam); m.rotation.x = Math.PI / 2; m.position.y = y; m.scale.set(1.12, 0.84, 1); arm.add(m); };
+  seg(0.027, 0.030, 0.0, 0.05, M.gloveSoft);
+  seg(0.034, 0.041, 0.035, 0.125, M.glove); seamAt(0.0415, 0.128);
+  seg(0.039, 0.047, 0.118, 0.235, M.glove); seamAt(0.0475, 0.238);
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.19, 0.012), M.dark); ridge.position.set(0, 0.14, 0.036); arm.add(ridge);
+  const foreG = new THREE.CylinderGeometry(0.064, 0.045, 1, 28); foreG.translate(0, 0.5, 0);
+  const fore = new THREE.Mesh(foreG, M.glove); fore.position.y = 0.228; fore.scale.set(1.12, 1, 0.84); arm.add(fore);
+  const wrist = palmC.clone().addScaledVector(fdir, 0.03);
 
   return { group: g, M, stud, studPhi, pips, fins, throat, crystal, hand, arm, fore, wrist };
 }

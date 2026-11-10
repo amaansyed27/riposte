@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#03060b" />
   <title>RIPOSTE — you cannot strike, only return</title>
-  <meta name="description" content="A browser game where you can't attack. Swipe an energy sword through incoming bolts and send every one back to whoever fired it." />
+  <meta name="description" content="A browser game where you can't attack. Swing an energy sword into incoming bolts and send every one back to whoever fired it." />
   <meta property="og:title" content="RIPOSTE" />
-  <meta property="og:description" content="You cannot strike. Only return. A swipe-to-deflect energy sword game in your browser." />
+  <meta property="og:description" content="You cannot strike. Only return. An energy-sword deflection game in your browser — play with mouse, touch, a gamepad, or your phone as the hilt." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2303060b'/%3E%3Cpath d='M9 25 23 7' stroke='%2338a8ff' stroke-width='6' stroke-linecap='round' opacity='.35'/%3E%3Cpath d='M9 25 23 7' stroke='%23eaf6ff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/src/ui/style.css" />
 </head>
@@ -15,28 +15,82 @@
   <canvas id="gl"></canvas>
 
   <div id="ui">
-    <section id="title" class="screen">
-      <div class="brand">
+    <!-- 1. opening -->
+    <section id="intro" class="screen">
+      <div class="crest">
+        <div class="saber left"><i class="hilt"></i><i class="beam"></i></div>
+        <div class="saber right"><i class="hilt"></i><i class="beam"></i></div>
+        <div class="clash"></div>
+        <p class="over">A duel you cannot start</p>
         <h1 id="wordmark" aria-label="Riposte"><span>R</span><span>I</span><span>P</span><span>O</span><span>S</span><span>T</span><span>E</span></h1>
         <p class="tag">You cannot strike. Only return.</p>
       </div>
-      <div class="title-foot">
+      <nav class="menu">
+        <button id="btnPlay" class="btn primary big">Play</button>
+        <button id="btnControls" class="btn">Controllers</button>
+        <p id="introBest" class="best-line"></p>
+      </nav>
+    </section>
+
+    <!-- 2. blade select -->
+    <section id="select" class="screen hidden">
+      <p class="over">Choose your blade</p>
+      <div class="select-foot">
+        <h2 id="bladeName">Azure</h2>
+        <p id="bladeLore" class="lore">The steadfast</p>
         <div id="swatches" role="radiogroup" aria-label="Blade colour"></div>
-        <p id="prompt" class="prompt"><span class="desk">Click to ignite</span><span class="touch">Tap to ignite</span></p>
-        <p class="fine"><span class="desk">Move to aim · swipe through each ring as it closes · Space sheathes the blade</span><span class="touch">Swipe through each ring as it closes</span></p>
+        <div class="row">
+          <button id="btnBack" class="btn">Back</button>
+          <button id="btnEnter" class="btn primary big">Enter the court</button>
+        </div>
+        <p class="fine"><span class="desk">Move to aim · put the blade in each bolt’s path · swing hard to riposte · Space sheathes</span><span class="touch">Drag to move the blade into each bolt’s path · swing hard to riposte</span></p>
       </div>
     </section>
 
+    <!-- controllers -->
+    <section id="controls" class="screen hidden">
+      <div class="card wide">
+        <div class="card-k">Controllers</div>
+        <div class="ctl">
+          <div class="ctl-row">
+            <div><b>Mouse or touch</b><span>Always on. The blade follows your pointer or finger.</span></div>
+            <em class="ok">Ready</em>
+          </div>
+          <div class="ctl-row">
+            <div><b>Phone as the hilt</b><span>Scan the code, then point your phone at this screen and swing. Needs both devices online.</span></div>
+            <button id="btnPhone" class="btn small">Pair a phone</button>
+          </div>
+          <div id="pairBox" class="pair hidden"><canvas id="qr" width="168" height="168"></canvas><div><p id="pairStatus">Starting…</p><p id="pairUrl" class="mono"></p></div></div>
+          <div class="ctl-row">
+            <div><b>Gamepad</b><span>Right stick aims, A confirms and sheathes, Start pauses. Rumble where supported.</span></div>
+            <em id="padStatus">Press any button</em>
+          </div>
+          <div class="ctl-row" id="gyroRow">
+            <div><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div>
+            <button id="btnGyro" class="btn small">Enable</button>
+          </div>
+          <div class="ctl-row" id="motionRow">
+            <div><b>Motion effects</b><span>On a phone, tilting the device leans the camera and the rain.</span></div>
+            <button id="btnMotion" class="btn small">Enable</button>
+          </div>
+        </div>
+        <div class="actions"><button id="btnCtlClose" class="btn primary">Done</button></div>
+      </div>
+    </section>
+
+    <!-- hud -->
     <section id="hud" class="hidden">
       <div class="hud-left">
-        <div id="bout">BOUT I</div>
+        <div class="lbl">Guard</div>
         <div id="pips"><i></i><i></i><i></i></div>
+        <div id="bout">BOUT I</div>
       </div>
       <div class="hud-mid">
         <div id="score">0</div>
-        <div id="combo"><b id="comboN">0</b><span>returned in a row</span></div>
+        <div id="combo"><b id="mult">×1</b><span><i id="comboN">0</i> in a row</span></div>
+        <div id="bossbar" class="hidden"><span id="bossName"></span><div class="track"><div id="bossFill"></div></div></div>
       </div>
-      <div id="tempo"><div id="tempoFill"></div><span>TEMPO</span></div>
+      <div id="tempo"><span>Tempo</span><div class="track"><div id="tempoFill"></div></div><small id="tempoHint">Every return fills it. Full, time bends.</small></div>
     </section>
 
     <div id="callout"></div>
@@ -51,20 +105,21 @@
         <div id="finalScore" class="card-score">0</div>
         <dl class="stats">
           <div><dt>Returned</dt><dd id="stReturned">0</dd></div>
-          <div><dt>Perfect</dt><dd id="stPerfect">0</dd></div>
+          <div><dt>Ripostes</dt><dd id="stPerfect">0</dd></div>
           <div><dt>Best streak</dt><dd id="stStreak">0</dd></div>
           <div><dt>Bout</dt><dd id="stBout">I</dd></div>
         </dl>
         <div id="best" class="card-best"></div>
         <div class="actions">
-          <button id="again" class="btn primary">Ignite again</button>
+          <button id="again" class="btn primary">Try again</button>
+          <button id="homeEnd" class="btn">Home</button>
           <button id="share" class="btn">Share</button>
           <button id="copy" class="btn">Copy result</button>
         </div>
       </div>
     </section>
 
-    <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="tag">Blade retracted. The court waits.</p><button id="resume" class="btn primary">Ignite</button></div></section>
+    <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="lore">Blade retracted. The court waits.</p><div class="actions"><button id="resume" class="btn primary">Resume</button><button id="homePause" class="btn">Home</button></div></div></section>
 
     <div id="corner">
       <button id="btnSound" class="icon" aria-label="Toggle sound" title="Sound (M)">
