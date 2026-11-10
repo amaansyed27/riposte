@@ -1,0 +1,21 @@
+{
+  "name": "riposte",
+  "version": "1.0.0",
+  "description": "You cannot strike. Only return. A swipe-to-deflect energy sword browser game.",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "vite": "^8.3.7"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "private": true
+}

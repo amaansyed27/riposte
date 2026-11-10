@@ -1,0 +1,209 @@
+// Everything you hear is synthesised: hum, ignition, retraction, deflect chimes, enemies, rain, thunder and a reactive score.
+import { clamp, rand } from '../core/util.js';
+
+const SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24]; // D minor pentatonic, climbing with your streak
+const ROOT = 146.83; // D3
+const note = (semi) => ROOT * Math.pow(2, semi / 12);
+
+export class Audio {
+  constructor() { this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
+
+  unlock() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = (this.ctx = new AC());
+    const master = (this.master = ctx.createGain()); master.gain.value = this.muted ? 0 : 0.9;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
+    this.duck = ctx.createBiquadFilter(); this.duck.type = 'lowpass'; this.duck.frequency.value = 20000;
+    master.connect(this.duck).connect(comp).connect(ctx.destination);
+    // reverb
+    const len = ctx.sampleRate * 3.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    this.wet = ctx.createGain(); this.wet.gain.value = 0.38; this.wet.connect(conv).connect(master);
+    this.dry = ctx.createGain(); this.dry.connect(master);
+    // noise buffer
+    const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    this.noiseBuf = nb;
+    this._hum(); this._rain(); this._pad();
+    this.ready = true;
+    this._sched = setInterval(() => this._music(), 40);
+    this.nextT = ctx.currentTime + 0.1;
+  }
+
+  setMuted(m) { this.muted = m; if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05); }
+
+  // ---- helpers
+  _noise(loop = true) { const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; s.loop = loop; s.start(0, Math.random() * 1.5); return s; }
+  _env(g, t, a, peak, d, curve = 'exp') { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  _out(pan = 0, wet = 0.3) {
+    const ctx = this.ctx, g = ctx.createGain();
+    let node = g;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); node = p; }
+    node.connect(this.dry); const w = ctx.createGain(); w.gain.value = wet; node.connect(w).connect(this.wet);
+    return g;
+  }
+  _tone(type, f0, f1, dur, peak, { pan = 0, wet = 0.3, attack = 0.004, delay = 0, filter = null } = {}) {
+    const ctx = this.ctx, t = ctx.currentTime + delay, o = ctx.createOscillator(), g = this._out(pan, wet);
+    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+    let n = o;
+    if (filter) { const f = ctx.createBiquadFilter(); f.type = filter.type || 'lowpass'; f.frequency.value = filter.f; f.Q.value = filter.q || 0.7; o.connect(f); n = f; }
+    n.connect(g); this._env(g, t, attack, peak, dur);
+    o.start(t); o.stop(t + dur + attack + 0.05);
+  }
+  _burst(type, f0, f1, q, dur, peak, { pan = 0, wet = 0.3, attack = 0.003, delay = 0 } = {}) {
+    const ctx = this.ctx, t = ctx.currentTime + delay, s = this._noise(false), f = ctx.createBiquadFilter(), g = this._out(pan, wet);
+    f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    s.connect(f).connect(g); this._env(g, t, attack, peak, dur);
+    s.stop(t + dur + 0.1);
+  }
+
+  // ---- continuous layers
+  _hum() {
+    const ctx = this.ctx;
+    this.humGain = ctx.createGain(); this.humGain.gain.value = 0;
+    this.humLP = ctx.createBiquadFilter(); this.humLP.type = 'lowpass'; this.humLP.frequency.value = 380; this.humLP.Q.value = 3;
+    const am = ctx.createGain(); am.gain.value = 0.8;
+    this.humOsc = [[46.2, 'sawtooth', 0.5], [92.9, 'square', 0.22], [139.1, 'sawtooth', 0.26], [185.3, 'sawtooth', 0.1]].map(([f, type, v]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; g.gain.value = v; o.connect(g).connect(am); o.start(); o.base = f; return o;
+    });
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 23; lg.gain.value = 0.2; lfo.connect(lg).connect(am.gain); lfo.start();
+    const lfo2 = ctx.createOscillator(), lg2 = ctx.createGain(); lfo2.frequency.value = 0.6; lg2.gain.value = 0.1; lfo2.connect(lg2).connect(am.gain); lfo2.start();
+    am.connect(this.humLP).connect(this.humGain);
+    this.humGain.connect(this.dry); const w = ctx.createGain(); w.gain.value = 0.25; this.humGain.connect(w).connect(this.wet);
+    // swing whoosh
+    this.swGain = ctx.createGain(); this.swGain.gain.value = 0;
+    this.swBP = ctx.createBiquadFilter(); this.swBP.type = 'bandpass'; this.swBP.frequency.value = 500; this.swBP.Q.value = 1.4;
+    this._noise().connect(this.swBP).connect(this.swGain).connect(this.dry);
+  }
+  setHum(power, swing, over = 0) {
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    this.humGain.gain.setTargetAtTime(clamp(power, 0, 1.6) * (0.17 + swing * 0.2), t, 0.03);
+    this.humLP.frequency.setTargetAtTime(340 + swing * 2400 + power * 120 + over * 600, t, 0.04);
+    const det = swing * 420 + (power - 1) * 500 + over * 700;
+    for (const o of this.humOsc) o.detune.setTargetAtTime(det, t, 0.05);
+    this.swGain.gain.setTargetAtTime(Math.min(1, power) * swing * swing * 0.42, t, 0.03);
+    this.swBP.frequency.setTargetAtTime(420 + swing * 2300, t, 0.04);
+  }
+  _rain() {
+    const ctx = this.ctx, hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 1400; lp.type = 'lowpass'; lp.frequency.value = 7500; g.gain.value = 0.045;
+    this._noise().connect(hp).connect(lp).connect(g).connect(this.dry);
+    // low wind
+    const bp = ctx.createBiquadFilter(), g2 = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 220; bp.Q.value = 0.6; g2.gain.value = 0.05;
+    const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 0.09; lg.gain.value = 90; l.connect(lg).connect(bp.frequency); l.start();
+    this._noise().connect(bp).connect(g2).connect(this.wet);
+  }
+  _pad() {
+    const ctx = this.ctx;
+    this.padGain = ctx.createGain(); this.padGain.gain.value = 0.0;
+    this.padLP = ctx.createBiquadFilter(); this.padLP.type = 'lowpass'; this.padLP.frequency.value = 500; this.padLP.Q.value = 0.8;
+    this.padOsc = [];
+    for (const semi of [-12, 0, 7, 10, 15]) for (const det of [-7, 6]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = note(semi); o.detune.value = det + rand(-3, 3);
+      const g = ctx.createGain(); g.gain.value = 0.045; o.connect(g).connect(this.padLP); o.start(); o.semi = semi; this.padOsc.push(o);
+    }
+    this.padLP.connect(this.padGain); this.padGain.connect(this.wet); const d = ctx.createGain(); d.gain.value = 0.4; this.padGain.connect(d).connect(this.dry);
+    this.padGain.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5);
+  }
+  setIntensity(x) { this.intensity = clamp(x); }
+  setPlaying(p) { this.playing = p; }
+  _music() {
+    if (!this.ready || this.ctx.state !== 'running') return;
+    const ctx = this.ctx, spb = 60 / 104 / 2; // 8th notes
+    if (this.nextT < ctx.currentTime) this.nextT = ctx.currentTime + 0.05;
+    while (this.nextT < ctx.currentTime + 0.12) {
+      const s = this.step++, t = this.nextT - ctx.currentTime, I = this.intensity, bar = Math.floor(s / 16) % 4;
+      const rootShift = [0, 0, -4, -2][bar];
+      if (s % 16 === 0) {
+        const tt = this.nextT;
+        for (const o of this.padOsc) o.frequency.setTargetAtTime(note(o.semi + rootShift), tt, 0.6);
+        this.padLP.frequency.setTargetAtTime(420 + I * 1500, tt, 1.2);
+      }
+      if (this.playing) {
+        // heartbeat bass
+        if (s % 4 === 0 || (I > 0.45 && s % 4 === 3)) this._tone('sawtooth', note(-24 + rootShift), note(-24 + rootShift), 0.22, 0.2 + I * 0.1, { delay: t, wet: 0.1, filter: { f: 160 + I * 500, q: 4 } });
+        if (s % 8 === 0) this._tone('sine', 110, 38, 0.16, 0.5, { delay: t, wet: 0.05 });
+        if (I > 0.3 && s % 2 === 1) this._burst('highpass', 7000, 9000, 0.7, 0.03, 0.05 + I * 0.07, { delay: t, wet: 0.1 });
+        if (I > 0.6) { const a = [0, 7, 12, 15, 19, 15, 12, 7][s % 8]; this._tone('triangle', note(a + rootShift + 12), note(a + rootShift + 12), 0.16, 0.05, { delay: t, wet: 0.7, pan: (s % 2) * 0.8 - 0.4 }); }
+      }
+      this.nextT += spb;
+    }
+  }
+
+  // ---- one-shots
+  ignite() {
+    if (!this.ready) return;
+    this._burst('highpass', 5000, 3000, 1, 0.02, 0.5, { wet: 0.1 });                // stud click
+    this._tone('square', 1900, 1900, 0.03, 0.08, { wet: 0.2 });
+    this._burst('bandpass', 380, 3800, 2.2, 0.38, 0.75, { delay: 0.07, wet: 0.5 });  // plasma rush
+    this._burst('bandpass', 3000, 700, 1.2, 0.5, 0.3, { delay: 0.2, wet: 0.6 });
+    this._tone('sawtooth', 38, 93, 0.42, 0.42, { delay: 0.07, wet: 0.4, filter: { f: 900, q: 2 } });
+    this._tone('sine', 95, 34, 0.5, 0.9, { delay: 0.08, wet: 0.3 });                 // chest thump
+    this._tone('sine', note(12), note(12), 1.6, 0.06, { delay: 0.25, wet: 1 });      // settling shimmer
+    this._tone('sine', note(19), note(19), 1.8, 0.04, { delay: 0.3, wet: 1 });
+  }
+  retract() {
+    if (!this.ready) return;
+    this._burst('bandpass', 2600, 180, 1.8, 0.32, 0.6, { wet: 0.4 });
+    this._tone('sawtooth', 110, 30, 0.3, 0.4, { wet: 0.3, filter: { f: 700, q: 2 } });
+  }
+  retractSnap() {
+    if (!this.ready) return;
+    this._tone('sine', 150, 55, 0.09, 0.8, { wet: 0.2 });
+    this._burst('highpass', 3500, 2500, 1, 0.025, 0.45, { wet: 0.15 });
+    this._burst('bandpass', 5000, 2500, 3, 0.9, 0.035, { delay: 0.08, wet: 0.5 });   // metal ticking as it cools
+  }
+  deflect(perfect, combo, pan = 0) {
+    if (!this.ready) return;
+    this._burst('bandpass', 3200, 900, 3, 0.11, 0.9, { pan, wet: 0.4 });
+    this._tone('sine', 2100, 240, 0.16, 0.55, { pan, wet: 0.35 });
+    this._tone('square', 320, 80, 0.1, 0.25, { pan, wet: 0.2, filter: { f: 1200 } });
+    const n = note(SCALE[Math.min(combo, SCALE.length - 1)] + 12);
+    this._tone('triangle', n, n, 0.9, 0.3, { pan: pan * 0.5, wet: 0.9 });
+    this._tone('sine', n * 2, n * 2, 0.7, 0.12, { pan: pan * 0.5, wet: 1 });
+    if (perfect) { this._tone('sine', n * 3, n * 3, 1.3, 0.14, { wet: 1, delay: 0.03 }); this._tone('sine', n * 4, n * 4, 1.5, 0.08, { wet: 1, delay: 0.06 }); }
+  }
+  block(pan = 0) { if (!this.ready) return; this._burst('bandpass', 1500, 500, 2, 0.12, 0.5, { pan }); this._tone('sawtooth', 180, 70, 0.14, 0.3, { pan, filter: { f: 900 } }); }
+  fire(kind, pan = 0) {
+    if (!this.ready) return;
+    const hi = kind === 'lancer' ? 2400 : kind === 'maestro' ? 700 : 1200;
+    this._tone('square', hi, hi * 0.18, 0.22, 0.2, { pan, wet: 0.5, filter: { f: 2600, q: 2 } });
+    this._burst('bandpass', hi * 1.5, hi * 0.4, 2, 0.14, 0.25, { pan, wet: 0.4 });
+  }
+  charge(pan = 0) { if (!this.ready) return; this._tone('sine', 220, 880, 0.5, 0.05, { pan, wet: 0.8, attack: 0.3 }); }
+  explode(big, pan = 0) {
+    if (!this.ready) return;
+    this._burst('lowpass', big ? 2600 : 1800, 70, 0.8, big ? 1.3 : 0.6, big ? 1.2 : 0.8, { pan, wet: 0.7 });
+    this._tone('sine', big ? 120 : 150, 28, big ? 0.9 : 0.4, 1.0, { pan, wet: 0.3 });
+    this._burst('highpass', 4000, 1500, 0.8, 0.25, 0.3, { pan, wet: 0.5 });
+  }
+  shield(pan = 0) { if (!this.ready) return; for (let i = 0; i < 5; i++) this._tone('sine', 1800 + i * 430 + rand(-60, 60), 1500 + i * 400, 0.35, 0.09, { pan, wet: 0.9, delay: i * 0.018 }); }
+  hit() {
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    this._burst('lowpass', 3000, 90, 1, 0.6, 1.3, { wet: 0.5 });
+    this._tone('sawtooth', 90, 24, 0.7, 0.8, { wet: 0.3, filter: { f: 500, q: 3 } });
+    this.duck.frequency.cancelScheduledValues(t); this.duck.frequency.setValueAtTime(380, t); this.duck.frequency.exponentialRampToValueAtTime(20000, t + 1.3);
+  }
+  death() { if (!this.ready) return; this._tone('sawtooth', note(-12), note(-24), 2.4, 0.4, { wet: 1, filter: { f: 600, q: 2 } }); this._tone('sine', note(3), note(-9), 2.8, 0.2, { wet: 1 }); }
+  thunder(delay = 1) {
+    if (!this.ready) return;
+    this._burst('lowpass', 420, 60, 0.6, 3.4, 0.85, { delay, wet: 1, attack: 0.08 });
+    this._burst('lowpass', 1500, 120, 0.8, 0.6, 0.4, { delay, wet: 0.8, attack: 0.01 });
+  }
+  tempo(on) {
+    if (!this.ready) return;
+    if (on) { for (let i = 0; i < 6; i++) this._tone('sine', note(SCALE[i * 2 % SCALE.length] + 12), note(SCALE[i * 2 % SCALE.length] + 12), 1.6, 0.12, { delay: i * 0.05, wet: 1 }); this._tone('sine', 60, 180, 0.6, 0.5, { wet: 0.4, attack: 0.3 }); }
+    else this._tone('sine', 400, 60, 0.7, 0.3, { wet: 0.8 });
+  }
+  stinger(n = 0) {
+    if (!this.ready) return;
+    for (const [i, s] of [0, 7, 12, 19].entries()) this._tone('triangle', note(s + (n % 2 ? 3 : 0)), note(s + (n % 2 ? 3 : 0)), 1.8, 0.14, { delay: i * 0.09, wet: 1 });
+  }
+  ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
+  sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }
+}

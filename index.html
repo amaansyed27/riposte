@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#03060b" />
+  <title>RIPOSTE — you cannot strike, only return</title>
+  <meta name="description" content="A browser game where you can't attack. Swipe an energy sword through incoming bolts and send every one back to whoever fired it." />
+  <meta property="og:title" content="RIPOSTE" />
+  <meta property="og:description" content="You cannot strike. Only return. A swipe-to-deflect energy sword game in your browser." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2303060b'/%3E%3Cpath d='M9 25 23 7' stroke='%2338a8ff' stroke-width='6' stroke-linecap='round' opacity='.35'/%3E%3Cpath d='M9 25 23 7' stroke='%23eaf6ff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/src/ui/style.css" />
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <div id="ui">
+    <section id="title" class="screen">
+      <div class="brand">
+        <h1 id="wordmark" aria-label="Riposte"><span>R</span><span>I</span><span>P</span><span>O</span><span>S</span><span>T</span><span>E</span></h1>
+        <p class="tag">You cannot strike. Only return.</p>
+      </div>
+      <div class="title-foot">
+        <div id="swatches" role="radiogroup" aria-label="Blade colour"></div>
+        <p id="prompt" class="prompt"><span class="desk">Click to ignite</span><span class="touch">Tap to ignite</span></p>
+        <p class="fine"><span class="desk">Move to aim · swipe through each ring as it closes · Space sheathes the blade</span><span class="touch">Swipe through each ring as it closes</span></p>
+      </div>
+    </section>
+
+    <section id="hud" class="hidden">
+      <div class="hud-left">
+        <div id="bout">BOUT I</div>
+        <div id="pips"><i></i><i></i><i></i></div>
+      </div>
+      <div class="hud-mid">
+        <div id="score">0</div>
+        <div id="combo"><b id="comboN">0</b><span>returned in a row</span></div>
+      </div>
+      <div id="tempo"><div id="tempoFill"></div><span>TEMPO</span></div>
+    </section>
+
+    <div id="callout"></div>
+    <div id="banner"><div id="bannerTop"></div><div id="bannerMain"></div><div id="bannerSub"></div></div>
+    <div id="floaters"></div>
+    <div id="hint"></div>
+
+    <section id="end" class="screen hidden">
+      <div class="card">
+        <div class="card-k">The bout is over</div>
+        <div id="rank" class="card-rank">Duelist</div>
+        <div id="finalScore" class="card-score">0</div>
+        <dl class="stats">
+          <div><dt>Returned</dt><dd id="stReturned">0</dd></div>
+          <div><dt>Perfect</dt><dd id="stPerfect">0</dd></div>
+          <div><dt>Best streak</dt><dd id="stStreak">0</dd></div>
+          <div><dt>Bout</dt><dd id="stBout">I</dd></div>
+        </dl>
+        <div id="best" class="card-best"></div>
+        <div class="actions">
+          <button id="again" class="btn primary">Ignite again</button>
+          <button id="share" class="btn">Share</button>
+          <button id="copy" class="btn">Copy result</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="tag">Blade retracted. The court waits.</p><button id="resume" class="btn primary">Ignite</button></div></section>
+
+    <div id="corner">
+      <button id="btnSound" class="icon" aria-label="Toggle sound" title="Sound (M)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="m16 9.5 5 5m0-5-5 5"/></svg>
+      </button>
+      <button id="btnPause" class="icon hidden" aria-label="Pause" title="Pause (Esc)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg>
+      </button>
+    </div>
+    <div id="fallback" class="hidden">This needs WebGL2. Try a recent Chrome, Edge, Safari or Firefox.</div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
