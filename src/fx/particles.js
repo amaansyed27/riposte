@@ -114,7 +114,9 @@ export class Rings {
         uniforms: { uColor: { value: new THREE.Color() }, uK: { value: 0 }, uThin: { value: 0.06 } },
         vertexShader: `varying vec2 vUv; void main(){ vUv=uv*2.0-1.0; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
         fragmentShader: `uniform vec3 uColor; uniform float uK,uThin; varying vec2 vUv;
-          void main(){ float r=length(vUv); float ring=exp(-pow((r-0.86)/uThin,2.0)) + 0.25*exp(-pow((r-0.86)/(uThin*4.0),2.0))*step(r,0.86); gl_FragColor=vec4(uColor*ring*uK,1.0); }`,
+float gauss(float x){ return exp(-x*x); }
+
+          void main(){ float r=length(vUv); float ring=gauss((r-0.86)/uThin) + 0.25*gauss((r-0.86)/(uThin*4.0))*step(r,0.86); gl_FragColor=vec4(uColor*ring*uK,1.0); }`,
       });
       const m = new THREE.Mesh(geo, mat); m.visible = false; m.frustumCulled = false; m.renderOrder = 6;
       scene.add(m);

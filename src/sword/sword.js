@@ -53,9 +53,12 @@ export class Sword {
     const h = buildHilt();
     this.h = h;
     for (const k of ['steel', 'dark', 'brass', 'grip']) h.M[k].side = THREE.DoubleSide;
+    for (const fin of h.fins) fin.material.side = THREE.DoubleSide;
     this.rig = new THREE.Group();
     this.rig.add(h.group);
     camera.add(this.rig);
+    camera.add(h.arm);
+    this.elbow = new THREE.Vector3(0.30, -0.78, 0.10);
 
     // blade core
     this.coreMat = new THREE.ShaderMaterial({
@@ -159,6 +162,13 @@ export class Sword {
     _m.makeBasis(_x, _y, _z);
     this.rig.quaternion.setFromRotationMatrix(_m);
     this.rig.position.copy(this.root);
+    // forearm IK: from the wrist to an elbow anchored below the view, so the limb always leaves the frame
+    _a.copy(this.h.wrist).applyQuaternion(this.rig.quaternion).add(this.root);
+    _b.set(this.elbow.x + this.root.x * 0.35, this.elbow.y, this.elbow.z).sub(_a);
+    const armLen = _b.length();
+    this.h.arm.position.copy(_a);
+    this.h.arm.quaternion.setFromUnitVectors(_up, _b.divideScalar(armLen));
+    this.h.fore.scale.y = Math.max(0.2, armLen + 0.3);
 
     // ---------- lifecycle
     this.t += dt;

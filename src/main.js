@@ -167,11 +167,12 @@ function poseTargets(dt) {
     _r.y += sway(2) * 0.03; _d.x += sway(3) * 0.05;
   } else {
     // play: the pointer rides the middle of the blade; the sword pivots from a point below the view
-    const D = 2.2, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D;
+    const D = 1.5, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D;
     _t.set(px, py, -D);
-    _a.set(px * 0.34, -1.9, -0.55);
+    _a.set(px * 0.30, -1.5, -0.28);
     _d.subVectors(_t, _a).normalize();
-    _r.copy(_t).addScaledVector(_d, -0.50 * BLADE_LEN);
+    // mouse: the cursor rides the lower blade. touch: the finger IS the hand, so the whole sword sits above it
+    _r.copy(_t).addScaledVector(_d, coarse ? 0.24 : -0.30 * BLADE_LEN);
     _r.x += sway(1) * 0.012; _r.y += sway(2) * 0.012;
   }
   _d.normalize();
@@ -181,7 +182,7 @@ function poseTargets(dt) {
 
 // ---------- frame
 let exposure = 1.5, manual = false, last = performance.now(), fpsAcc = 0, fpsN = 0, lowT = 0;
-function frame(rdt) {
+function frame(rdt, draw = true) {
   rdt = Math.min(rdt, 0.05);
   app.time += rdt; timeU.value = app.time;
   const g = app.game, gdt = rdt * g.timeScale;
@@ -215,12 +216,12 @@ function frame(rdt) {
   app.post.bloom.strength = 0.36 + (g.tempoLive > 0 ? 0.14 : 0) + Math.max(0, app.sword.power - 1) * 0.12;
   app.post.update(rdt, app.time);
   app.hud.setLit(clamp(app.sword.light * 0.9));
-  app.post.render();
+  if (draw) app.post.render();
 }
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = (now - last) / 1000; last = now;
-  if (manual) return;
+  if (manual) { app.post.render(); return; } // keep presenting the frozen frame so captures never stall
   frame(dt);
   // adaptive quality: if we can't hold ~45fps, shed pixels
   fpsAcc += dt; fpsN++;
@@ -235,10 +236,21 @@ requestAnimationFrame(loop);
 window.__riposte = {
   app,
   manual(on = true) { manual = on; last = performance.now(); return manual; },
-  step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) frame(dt); return { t: +app.time.toFixed(3), state: app.sword.state, len: +app.sword.len.toFixed(3), power: +app.sword.power.toFixed(2), game: app.game.state }; },
+  step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) frame(dt, i === n - 1); return { t: +app.time.toFixed(3), state: app.sword.state, len: +app.sword.len.toFixed(3), power: +app.sword.power.toFixed(2), game: app.game.state }; },
   ignite: () => app.sword.ignite(), retract: () => app.sword.retract(),
   start: () => { app.audio.unlock(); app.game.start(); },
   autoplay(on = true) { app.autoplay = on; return on; },
+  // render the current state and save the WebGL frame to .shots/<name>.jpg (dev server only)
+  async snap(name, width = 960) {
+    app.post.render();
+    const c = document.createElement('canvas'); c.width = width; c.height = Math.round(width * canvas.height / canvas.width);
+    c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    await fetch('/__shot?name=' + name, { method: 'POST', body: blob });
+    return name;
+  },
+  // step n frames then snap; returns state
+  async stepSnap(name, n = 1, dt = 1 / 60) { const st = this.step(dt, n); await this.snap(name); return st; },
   pointer(nx, ny) { app.input.set(nx, ny); },
   color: setColor,
   info: () => ({ state: app.game.state, bout: app.game.bout, score: app.game.score, combo: app.game.combo, integrity: app.game.integrity, enemies: app.game.enemies.length, bolts: app.game.bolts.incoming.length, sword: app.sword.state, quality: app.quality, fps: 0 }),

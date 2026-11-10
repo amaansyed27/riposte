@@ -1,13 +1,14 @@
 // Sentinels: procedurally built machines that drift out of the fog, charge, and fire.
 import * as THREE from 'three';
 import { rand, clamp, lerp, easeOutCubic, pick } from '../core/util.js';
+import { makeBeam } from '../sword/beam.js';
 
 export const TYPES = {
-  wisp: { hp: 1, score: 100, color: new THREE.Color(1.0, 0.22, 0.10), scale: 1.0, charge: 0.55, cd: [1.5, 2.6] },
-  twin: { hp: 1, score: 180, color: new THREE.Color(1.0, 0.10, 0.48), scale: 1.0, charge: 0.6, cd: [2.0, 3.0] },
-  lancer: { hp: 1, score: 300, color: new THREE.Color(1.0, 0.72, 0.18), scale: 1.0, charge: 1.0, cd: [2.4, 3.6] },
-  bulwark: { hp: 2, score: 400, color: new THREE.Color(1.0, 0.36, 0.06), scale: 1.25, charge: 0.7, cd: [1.9, 2.9] },
-  maestro: { hp: 12, score: 2500, color: new THREE.Color(1.0, 0.08, 0.14), scale: 1.0, charge: 0.9, cd: [1.6, 2.2] },
+  wisp: { hp: 1, score: 100, color: new THREE.Color(1.0, 0.22, 0.10), scale: 1.45, charge: 0.55, cd: [1.5, 2.6] },
+  twin: { hp: 1, score: 180, color: new THREE.Color(1.0, 0.10, 0.48), scale: 1.45, charge: 0.6, cd: [2.0, 3.0] },
+  lancer: { hp: 1, score: 300, color: new THREE.Color(1.0, 0.72, 0.18), scale: 1.4, charge: 1.0, cd: [2.4, 3.6] },
+  bulwark: { hp: 2, score: 400, color: new THREE.Color(1.0, 0.36, 0.06), scale: 1.7, charge: 0.7, cd: [1.9, 2.9] },
+  maestro: { hp: 12, score: 2500, color: new THREE.Color(1.0, 0.08, 0.14), scale: 1.25, charge: 0.9, cd: [1.6, 2.2] },
 };
 
 let shared = null;
@@ -20,7 +21,7 @@ function assets() {
   const glowTex = new THREE.CanvasTexture(c);
   shared = {
     glowTex,
-    hull: new THREE.MeshStandardMaterial({ color: 0x12151b, metalness: 0.92, roughness: 0.36, envMapIntensity: 0.9, flatShading: true }),
+    hull: new THREE.MeshStandardMaterial({ color: 0x2a303b, metalness: 0.85, roughness: 0.38, envMapIntensity: 1.6, flatShading: true }),
     hull2: new THREE.MeshStandardMaterial({ color: 0x2a2f3a, metalness: 1, roughness: 0.25, envMapIntensity: 1.0 }),
     octa: new THREE.OctahedronGeometry(0.55, 0),
     ico: new THREE.IcosahedronGeometry(0.7, 0),
@@ -47,6 +48,8 @@ function shieldMaterial(color) {
   });
 }
 
+export const glowTexture = () => assets().glowTex;
+
 export class Enemy {
   constructor(type, app) {
     const A = assets(); const T = TYPES[type];
@@ -58,13 +61,15 @@ export class Enemy {
     const g = (this.group = new THREE.Group());
     this.eyeMat = new THREE.MeshBasicMaterial({ color: T.color.clone().multiplyScalar(3), fog: false });
     this.rings = []; this.eyes = [];
+    // trim: every ring glows faintly in the sentinel's colour so the silhouette reads against the dark
+    this.trim = new THREE.MeshStandardMaterial({ color: 0x3a4150, metalness: 1, roughness: 0.3, envMapIntensity: 1.4, emissive: T.color.clone(), emissiveIntensity: 0.35 });
     const addEye = (x, y, z, s = 1) => {
       const e = new THREE.Mesh(A.eye, this.eyeMat); e.position.set(x, y, z); e.scale.setScalar(s); g.add(e);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: A.glowTex, color: T.color.clone(), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
-      sp.position.set(x, y, z + 0.1); sp.scale.setScalar(1.6 * s); g.add(sp);
+      sp.position.set(x, y, z + 0.1); sp.scale.setScalar(1.1 * s); g.add(sp);
       this.eyes.push({ e, sp, s });
     };
-    const addRing = (r, geo = A.ring, ax = 0, az = 0) => { const m = new THREE.Mesh(geo, A.hull2); m.scale.setScalar(r); m.rotation.set(ax, 0, az); g.add(m); this.rings.push(m); return m; };
+    const addRing = (r, geo = A.ring, ax = 0, az = 0) => { const m = new THREE.Mesh(geo, this.trim); m.scale.setScalar(r); m.rotation.set(ax, 0, az); g.add(m); this.rings.push(m); return m; };
     if (type === 'wisp') {
       const b = new THREE.Mesh(A.octa, A.hull); b.scale.set(1, 1.25, 1); g.add(b); this.body = b;
       addRing(1); addEye(0, 0, 0.5);
@@ -90,6 +95,7 @@ export class Enemy {
     }
     g.scale.setScalar(T.scale);
     app.scene.add(g);
+    if (type === 'lancer') { this.sight = makeBeam({ width: 0.09, core: 0.007, timeUniform: app.timeU }); this.sight.material.uniforms.uColor.value.copy(T.color); this.sight.visible = false; app.scene.add(this.sight); }
   }
   get muzzle() { return this._m.copy(this.eyes[0].e.position).applyMatrix4(this.group.matrixWorld); }
   _m = new THREE.Vector3();
@@ -135,9 +141,14 @@ export class Enemy {
     this.rings.forEach((r, i) => { if (this.type === 'maestro' || this.type === 'bulwark') { r.rotation.x += dt * sp * (0.5 + i * 0.3); r.rotation.y += dt * sp * 0.4; } else r.rotation.z += dt * sp * (i % 2 ? -1 : 1) * 1.6; });
     const pulse = 1 + 0.15 * Math.sin(time * 5 + this.seed);
     this.eyeMat.color.copy(this.color).multiplyScalar((2.2 + ck * 9) * pulse).addScalar(ck * ck * 2.5);
-    for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (1.5 + ck * 3.2) * pulse); s.material.color.copy(this.color).multiplyScalar(0.8 + ck * 2.4); }
+    for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (1.1 + ck * 1.3) * pulse); s.material.color.copy(this.color).multiplyScalar(0.55 + ck * 1.1); }
     if (this.shield) { const u = this.shield.material.uniforms; u.uTime.value = time; u.uHit.value = Math.max(0, u.uHit.value - dt * 3); }
+    this.trim.emissiveIntensity = 0.35 + ck * 1.6 + this.flinch * 2;
     g.updateMatrixWorld(true);
+    if (this.sight) {
+      this.sight.visible = this.state === 'charge' && !!this.aimW;
+      if (this.sight.visible) { const u = this.sight.material.uniforms; u.uA.value.copy(this.muzzle); u.uB.value.copy(this.aimW); u.uPower.value = 0.25 + ck * ck * 1.4; }
+    }
     // glow of the eye onto the wet floor
     if (ck > 0.05) this.app.env.light(this.muzzle.clone(), this.color, ck * 1.2);
   }
@@ -151,5 +162,5 @@ export class Enemy {
     if (this.type === 'maestro' && this.hp <= this.maxHp / 2 && this.phase === 1) { this.phase = 2; return this.hp <= 0 ? 'dead' : 'phase'; }
     return this.hp <= 0 ? 'dead' : 'hurt';
   }
-  dispose() { this.alive = false; this.app.scene.remove(this.group); for (const { sp } of this.eyes) sp.material.dispose(); this.eyeMat.dispose(); }
+  dispose() { this.alive = false; this.app.scene.remove(this.group); this.trim.dispose(); if (this.sight) { this.app.scene.remove(this.sight); this.sight.material.dispose(); } for (const { sp } of this.eyes) sp.material.dispose(); this.eyeMat.dispose(); }
 }

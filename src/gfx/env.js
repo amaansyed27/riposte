@@ -6,6 +6,7 @@ import { GLSL_NOISE, rand, clamp } from '../core/util.js';
 const FOG = new THREE.Color(0.010, 0.017, 0.030);
 export const ECLIPSE_DIR = new THREE.Vector3(0, 0.36, -1).normalize();
 const MAXL = 6;
+const WHITE = new THREE.Color(1, 1, 1);
 
 export class Environment {
   constructor(scene, { reflRes = 1024, rainCount = 2600 } = {}) {
@@ -69,7 +70,7 @@ export class Environment {
           float corona = exp(-o*7.0)*0.07*rays + exp(-o*30.0)*0.40*rays + exp(-o*120.0)*0.9;
           float disc = smoothstep(R + 0.002, R - 0.002, ang);
           col += cc * corona * (1.0 - disc);
-          col += cc * 2.6 * exp(-pow((ang - R)/0.0024, 2.0));
+          col += cc * 2.6 * gauss((ang - R)/0.0024);
           // diamond-ring bead
           vec3 bead = normalize(uE + rt*R*0.72 + up*R*0.70);
           float bd = acos(clamp(dot(d,bead),-1.0,1.0));
@@ -135,13 +136,13 @@ export class Environment {
             vec4 rp = uRip[i]; float age = uTime - rp.z;
             if(age > 0.0 && age < 5.0){
               vec2 q = P.xz - rp.xy; float r = length(q); float fr = age*5.5;
-              float w = sin((r-fr)*4.5) * exp(-pow((r-fr)*0.8,2.0)) * rp.w * exp(-age*0.85) / (1.0 + r*0.12);
+              float w = sin((r-fr)*4.5) * gauss((r-fr)*0.8) * rp.w * exp(-age*0.85) / (1.0 + r*0.12);
               n += (q/(r+1e-3))*w*0.09;
             }
           }
           vec3 N = normalize(vec3(n.x, 1.0, n.y));
           // planar reflection with ripple distortion
-          vec2 ruv = vUvP.xy / vUvP.w + n * (0.55*nearFade + 0.10);
+          vec2 ruv = vUvP.xy / vUvP.w + n * (0.30*nearFade + 0.06);
           vec3 refl = texture2D(tDiffuse, ruv).rgb;
           float cosT = max(dot(N,V), 0.0);
           float F = mix(0.16, 1.0, pow(1.0-cosT, 3.2));
@@ -171,10 +172,10 @@ export class Environment {
           }
           light += vec3(0.5,0.6,0.9)*uFlash*0.6 + vec3(0.010,0.013,0.02);
           float pd = length(P.xz-uPulse.xy);
-          float pulse = uPulse.w*exp(-pow((pd-uPulse.z)/1.3,2.0));
+          float pulse = uPulse.w*gauss((pd-uPulse.z)/1.3);
           vec3 col = albedo*light*(1.0-F*0.6) + refl*F;
           col += uBladeCol*lines*(0.035*uBladePow + pulse*1.6) + uBladeCol*pulse*0.05;
-          float fog = 1.0 - exp(-pow(dist*uFogDen,2.0));
+          float fog = 1.0 - gauss(dist*uFogDen);
           col = mix(col, uFogCol + vec3(0.2,0.25,0.4)*uFlash*0.1, fog);
           gl_FragColor = vec4(col,1.0);
         }`,
@@ -256,7 +257,7 @@ export class Environment {
           vec3 ab = uBladeB-uBladeA; float tt = clamp(dot(p-uBladeA,ab)/max(dot(ab,ab),1e-5),0.0,1.0);
           vec3 L = uBladeA + ab*tt - p; float d2 = dot(L,L);
           vec3 c = vec3(0.045,0.06,0.09)*(0.4+aRnd) + vec3(0.5,0.6,0.9)*uFlash*0.5;
-          c += uBladeCol*uBladePow*(1.4/(1.0+d2*5.0) + 0.05/(1.0+d2*0.2));
+          c += uBladeCol*uBladePow*(0.8/(1.0+d2*6.0) + 0.035/(1.0+d2*0.2));
           for(int i=0;i<3;i++){ vec3 l = uLPos[i]-p; c += uLCol[i]*0.25/(1.0+dot(l,l)*1.5); }
           float dc = length(p-cameraPosition);
           vCol = c * smoothstep(0.25, 1.2, dc) * (0.35 + 0.65*aEnd);
@@ -279,6 +280,9 @@ export class Environment {
     this.flashLight = new THREE.DirectionalLight(new THREE.Color(0.7, 0.8, 1.0), 0);
     this.flashLight.position.set(-30, 60, -40);
     this.scene.add(this.flashLight);
+    this.fill = new THREE.DirectionalLight(0xffffff, 0);
+    this.fill.position.set(0.3, 2.2, 6); this.fill.target.position.set(0, 4, -20);
+    this.scene.add(this.fill, this.fill.target);
     this.bladeLights = [0, 1].map(() => { const l = new THREE.PointLight(0xffffff, 0, 0, 1.5); this.scene.add(l); return l; });
     this.dyn = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffffff, 0, 0, 1.6); this.scene.add(l); return l; });
   }
@@ -302,6 +306,7 @@ export class Environment {
     const len = a.distanceTo(b);
     l1.intensity = power * 2.4 * Math.min(1, len * 3);
     l2.intensity = power * 2.8 * Math.min(1, len * 1.2);
+    this.fill.color.copy(color).lerp(WHITE, 0.25); this.fill.intensity = 0.10 + power * 0.9 * Math.min(1, len);
   }
 
   update(dt, time, vdt) {

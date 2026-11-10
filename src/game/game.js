@@ -176,7 +176,7 @@ export class Game {
   spawn(type) {
     const { app } = this;
     const e = new Enemy(type, app);
-    if (type === 'maestro') { if (this.cfg.bossHp) e.hp = e.maxHp = this.cfg.bossHp; e.place(app.ndcToWorld(0, 0.36, 27)); }
+    if (type === 'maestro') { if (this.cfg.bossHp) e.hp = e.maxHp = this.cfg.bossHp; e.place(app.ndcToWorld(0, 0.36, 19)); }
     else e.place(this.pickSlot());
     this.enemies.push(e);
     return e;
@@ -184,7 +184,7 @@ export class Game {
   pickSlot() {
     const { app } = this; let best = null, bd = -1;
     for (let i = 0; i < 8; i++) {
-      const c = { x: rand(-0.74, 0.74), y: rand(0.04, 0.6), z: rand(14, 23) };
+      const c = { x: rand(-0.72, 0.72), y: rand(0.06, 0.58), z: rand(9, 14) };
       let d = 9;
       for (const e of this.enemies) if (e.ndcSlot) d = Math.min(d, Math.hypot(e.ndcSlot.x - c.x, (e.ndcSlot.y - c.y) * 1.4));
       if (d > bd) { bd = d; best = c; }
@@ -224,7 +224,7 @@ export class Game {
     const { app } = this;
     b.done = true;
     app.fx.sparks.burst(b.pos, b.color, 16, 5, { life: 0.35, bright: 3 });
-    app.fx.glows.emit(b.pos, b.color, 0.5, 0.2, { bright: 3 });
+    app.fx.glows.emit(b.pos, b.color, 0.35, 0.2, { bright: 2.2 });
     app.env.flash(b.pos, b.color, 2, 0.2);
     app.audio.block(q.nx * 0.6); app.addTrauma(0.15); app.sword.disturb(0.35);
     app.hud.callout('PARRY');
@@ -250,10 +250,10 @@ export class Game {
     _v.subVectors(b.S, b.T).normalize();
     app.fx.sparks.burst(b.pos, _c.copy(col).lerp(WHITE, 0.5), perfect ? 46 : 24, perfect ? 11 : 8, { dir: _v, spread: 0.8, life: 0.5, bright: perfect ? 6 : 4 });
     app.fx.sparks.burst(b.pos, b.color, 10, 5, { life: 0.3, bright: 3 });
-    app.fx.glows.emit(b.pos, WHITE, perfect ? 1.1 : 0.7, 0.16, { bright: perfect ? 7 : 4 });
-    app.fx.glows.emit(b.pos, col, perfect ? 2.2 : 1.3, 0.3, { bright: 2.5 });
-    app.fx.rings.emit(b.pos, perfect ? _c.setRGB(1, 0.85, 0.5) : col, { r0: 0.1, r1: perfect ? 1.5 : 0.9, life: 0.35, bright: perfect ? 4 : 2.5 });
-    app.env.flash(b.pos, col, perfect ? 6 : 3.5, 0.3);
+    app.fx.glows.emit(b.pos, WHITE, perfect ? 0.42 : 0.3, 0.14, { bright: perfect ? 4.5 : 3 });
+    app.fx.glows.emit(b.pos, col, perfect ? 0.95 : 0.6, 0.28, { bright: 1.4 });
+    app.fx.rings.emit(b.pos, perfect ? _c.setRGB(1, 0.85, 0.5) : col, { r0: 0.08, r1: perfect ? 0.6 : 0.4, life: 0.28, bright: perfect ? 2.6 : 1.8 });
+    app.env.flash(b.pos, col, perfect ? 3.5 : 2.2, 0.3);
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, perfect ? 0.8 : 0.4, 1.1);
     app.addTrauma(perfect ? 0.3 : 0.16); app.kick(perfect ? 1 : 0.5);
     this.stopT = perfect ? 0.075 : 0.035;
@@ -306,8 +306,8 @@ export class Game {
     app.fx.sparks.burst(p, e.color, big ? 220 : 70, big ? 22 : 13, { life: 0.9, bright: 5, grav: 6, drag: 1.6 });
     app.fx.sparks.burst(p, WHITE, big ? 80 : 26, big ? 30 : 18, { life: 0.45, bright: 6, grav: 2 });
     app.fx.debris.burst(p, big ? 60 : 12, big ? 16 : 9, big ? 1.8 : 1);
-    app.fx.glows.emit(p, WHITE, 3.5 * s, 0.22, { bright: 6 });
-    app.fx.glows.emit(p, e.color, 7 * s, 0.55, { bright: 2.2 });
+    app.fx.glows.emit(p, WHITE, 2.0 * s, 0.2, { bright: 4 });
+    app.fx.glows.emit(p, e.color, 4.5 * s, 0.5, { bright: 1.3 });
     app.fx.rings.emit(p, e.color, { r0: 0.4, r1: 5.5 * s, life: 0.6, bright: 3.5 });
     app.fx.rings.emit(_v.set(p.x, 0.03, p.z), e.color, { r0: 0.5, r1: 7 * s, life: 0.9, flat: true, bright: 1.6, thin: 0.03 });
     app.env.flash(p, e.color, big ? 22 : 9, big ? 1.0 : 0.5);

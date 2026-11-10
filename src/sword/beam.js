@@ -48,7 +48,7 @@ export function makeBeamMaterial({ width = 0.6, core = 0.012, white = 0, timeUni
         float pulse = 1.0 + 0.10*sin(vP.x*24.0 - uTime*30.0)*step(0.0,t)*step(t,1.0);
         vec3 col = uColor*(mid*1.15*pulse + wide*0.085 + tip);
         col += vec3(1.0)*tip*0.25;
-        col += vec3(1.0)*exp(-pow(d/(rc*0.85), 2.0))*uWhite;
+        col += vec3(1.0)*gauss(d/(rc*0.85))*uWhite;
         gl_FragColor = vec4(col*uPower*edge*smoothstep(0.0,0.02,vLen), 1.0);
       }`,
   });

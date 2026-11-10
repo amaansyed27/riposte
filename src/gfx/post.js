@@ -24,6 +24,8 @@ const LensShader = {
     uniform sampler2D tDiffuse; uniform float uTime,uAspect,uCA,uVignette,uGrain,uHit,uDesat;
     uniform vec3 uFlash; uniform vec4 uShock[4]; varying vec2 vUv;
     float hash(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+float gauss(float x){ return exp(-x*x); }
+
     void main(){
       vec2 uv = vUv;
       // refractive shockwaves
@@ -31,7 +33,7 @@ const LensShader = {
         vec4 s = uShock[i];
         vec2 p = uv - s.xy; p.x *= uAspect;
         float r = length(p);
-        float k = s.w * exp(-pow((r - s.z)/0.05, 2.0));
+        float k = s.w * gauss((r - s.z)/0.05);
         uv -= normalize(p + 1e-5) * k * 0.03;
       }
       vec2 c = uv - 0.5;

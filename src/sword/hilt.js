@@ -157,13 +157,18 @@ export function buildHilt() {
   const fdir = new THREE.Vector3(0.20, -0.42, 0.88).normalize();
   const palmC = new THREE.Vector3(0.006, -0.212, 0.022);
   const yAxis = new THREE.Vector3(0, 1, 0);
-  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.040, 0.07, 24), M.glove);
-  cuff.position.copy(palmC).addScaledVector(fdir, 0.062); cuff.quaternion.setFromUnitVectors(yAxis, fdir.clone().negate()); hand.add(cuff);
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.037, 0.056, 0.7, 24), M.gloveSoft);
-  arm.position.copy(palmC).addScaledVector(fdir, 0.44); arm.quaternion.setFromUnitVectors(yAxis, fdir.clone().negate()); hand.add(arm);
-  const seam = new THREE.Mesh(new THREE.TorusGeometry(0.0412, 0.0013, 8, 40), M.seam);
-  seam.position.copy(palmC).addScaledVector(fdir, 0.094); seam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), fdir); hand.add(seam);
+  const wristBall = new THREE.Mesh(new THREE.SphereGeometry(0.033, 16, 12), M.gloveSoft);
+  wristBall.position.copy(palmC).addScaledVector(fdir, 0.035); hand.add(wristBall);
+  // forearm (attached to the camera by the sword; +Y runs wrist -> elbow, unit length)
+  const arm = new THREE.Group();
+  const cuffG = new THREE.CylinderGeometry(0.041, 0.035, 0.085, 24); cuffG.translate(0, 0.0425, 0);
+  const cuff = new THREE.Mesh(cuffG, M.glove); arm.add(cuff);
+  const seamM = new THREE.Mesh(new THREE.TorusGeometry(0.0418, 0.0014, 8, 40), M.seam); seamM.rotation.x = Math.PI / 2; seamM.position.y = 0.072; arm.add(seamM);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.012), M.dark); plate.position.set(0, 0.16, 0.047); arm.add(plate);
+  const foreG = new THREE.CylinderGeometry(0.062, 0.040, 1, 24); foreG.translate(0, 0.5, 0);
+  const fore = new THREE.Mesh(foreG, M.gloveSoft); fore.position.y = 0.08; arm.add(fore);
+  const wrist = palmC.clone().addScaledVector(fdir, 0.03);
   g.add(hand);
 
-  return { group: g, M, stud, studPhi, pips, fins, throat, crystal, hand };
+  return { group: g, M, stud, studPhi, pips, fins, throat, crystal, hand, arm, fore, wrist };
 }
