@@ -182,7 +182,7 @@ export class Game {
     const e = new Enemy(type, app);
     if (e.boss) {
       const hp = { maestro: 12, hydra: 9, bastion: 16 }[type] + (this.cfg.tier || 0) * { maestro: 5, hydra: 4, bastion: 7 }[type];
-      e.hp = e.maxHp = hp; e.ndcSlot = { x: 0, y: 0.36 }; e.place(app.ndcToWorld(0, 0.36, 19));
+      e.hp = e.maxHp = hp; e.ndcSlot = { x: 0, y: 0.34 }; e.place(app.ndcToWorld(0, 0.34, 14.5));
       this.boss = e; app.hud.boss(`${e.T.name}${this.cfg.tier ? ' ' + ROMAN(this.cfg.tier + 1) : ''}`, 1);
       if (type === 'hydra') this.after(1.6, () => this.leashes(e));
     } else {
