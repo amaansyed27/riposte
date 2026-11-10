@@ -82,7 +82,8 @@ export class Sword {
         uniform vec3 uColor; uniform float uPower,uLen,uTip,uTime; varying vec3 vN; varying vec3 vV; varying float vY;
         void main(){
           float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
-          vec3 col = mix(vec3(1.0), uColor*1.6 + 0.12, pow(f, 1.6)*0.9);
+          float streak = 0.5 + 0.5*sin(vY*46.0 - uTime*38.0 + sin(vY*9.0 + uTime*5.0)*2.0);
+          vec3 col = mix(vec3(1.0), uColor*1.6 + 0.12, clamp(pow(f, 1.4)*0.95 + streak*0.14, 0.0, 1.0));
           float front = uTip*exp(-(uLen - vY)*14.0);
           gl_FragColor = vec4(col*(3.2 + front*4.0)*uPower, 1.0);
         }`,
@@ -180,8 +181,8 @@ export class Sword {
       const T0 = 0.085;
       this.crystal = clamp(t / 0.07) * (0.75 + 0.25 * Math.sin(t * 160));
       if (t >= T0) {
-        const x = (t - T0) / 0.23;
-        this.len = x < 1 ? 1.045 * easeOutCubic(x) : 1 + 0.045 * Math.exp(-(x - 1) * 7) * Math.cos((x - 1) * 11);
+        const x = (t - T0) / 0.32;
+        this.len = x < 1 ? 1.045 * (1 - Math.pow(1 - x, 2.2)) : 1 + 0.045 * Math.exp(-(x - 1) * 7) * Math.cos((x - 1) * 11);
         this.power = 1 + 0.9 * Math.exp(-(t - T0) * 6.5);
         this.instab = 0.10 + 1.0 * Math.exp(-(t - T0) * 4.2);
         tipFlare = (x < 1 ? 0.7 : 0) + 0.8 * Math.exp(-(t - T0) * 8);
@@ -200,7 +201,7 @@ export class Sword {
       this.power = damp(this.power, 1, 6, dt); this.instab = damp(this.instab, 0.10, 4, dt);
     } else if (this.state === 'retracting') {
       const x = clamp(t / 0.30);
-      this.len = this.len0 * (1 - Math.pow(x, 2.3));
+      this.len = this.len0 * (1 - Math.pow(x, 1.45));
       this.power = 1 + 0.9 * x; this.instab = 0.12 + 0.5 * x; tipFlare = 1.5 * x;
       this.crystal = 1 - 0.3 * x;
       if (x >= 1) {

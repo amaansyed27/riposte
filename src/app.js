@@ -241,7 +241,7 @@ function poseTargets(dt) {
   const th = Math.tan(THREE.MathUtils.degToRad(app.baseFov) / 2);
   const sway = (o) => (noise1(t * 0.5 + o) - 0.5);
   if (app.pose === 'title') {
-    if (portrait) { _r.set(-0.03, -0.20, -0.78); _d.set(0.12, 0.72, -0.68); }
+    if (portrait) { _r.set(-0.05, 0.02, -0.9); _d.set(0.16, 0.74, -0.65); }
     else { _r.set(-0.20, -0.13, -0.62); _d.set(0.45, 0.50, -0.74); }
     _d.normalize(); _r.x += sway(1) * 0.03; _r.y += sway(2) * 0.03;
     _d.x += sway(3) * 0.06 + app.input.ndc.x * 0.05; _d.y += sway(4) * 0.03 + app.input.ndc.y * 0.03;
@@ -298,7 +298,7 @@ function frame(rdt, draw = true) {
   // audio follows the blade
   app.audio.setHum(app.sword.power * clamp(app.sword.len * 2), app.sword.swing, app.sword.over);
   // eyes adapt: ignition blows out then settles; darkness slowly resolves after retraction
-  const target = lerp(1.5, 0.95, clamp(app.sword.light));
+  const target = lerp(1.5, 1.15, clamp(app.sword.light));
   exposure = damp(exposure, target, target < exposure ? 7 : 0.55, rdt);
   renderer.toneMappingExposure = exposure;
   const pu = app.post.u;

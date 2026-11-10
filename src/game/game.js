@@ -206,7 +206,7 @@ export class Game {
   pickSlot() {
     let best = null, bd = -1;
     for (let i = 0; i < 8; i++) {
-      const c = { x: rand(-0.72, 0.72), y: rand(0.08, 0.58), z: rand(9, 14) };
+      const mx = this.app.aspect < 1 ? 0.5 : 0.7; const c = { x: rand(-mx, mx), y: rand(0.10, 0.56), z: rand(7.5, 11.5) };
       let d = 9;
       for (const e of this.enemies) if (e.ndcSlot) d = Math.min(d, Math.hypot(e.ndcSlot.x - c.x, (e.ndcSlot.y - c.y) * 1.4));
       if (d > bd) { bd = d; best = c; }
@@ -230,8 +230,8 @@ export class Game {
       if (!b.live || b.state !== 'in' || b.done || b.t < 0) continue;
       const rem = b.dur - b.t;
       if (rem > 0.11 || rem < -0.09) continue;                 // only when the bolt has physically reached the blade
-      const q = app.project(b.pos);
-      const rad = H * (0.058 * Math.sqrt(b.size) + (app.coarse ? 0.022 : 0)) * (this.tempoLive > 0 ? 1.5 : 1);
+      const q = app.project(b.T);                              // judged at the reticle: what you see is what counts
+      const rad = H * (0.036 * Math.sqrt(b.size) + (app.coarse ? 0.02 : 0)) * (this.tempoLive > 0 ? 1.4 : 1);
       let d = 1e9;
       for (let i = 0; i < this.hist.length; i++) {
         const s = this.hist[i], p = this.hist[Math.max(0, i - 1)];
@@ -256,12 +256,12 @@ export class Game {
     _v.subVectors(b.S, b.T).normalize();
     app.fx.sparks.burst(b.pos, _c.copy(col).lerp(WHITE, 0.5), strong ? 46 : 22, strong ? 11 : 7, { dir: _v, spread: 0.8, life: 0.5, bright: strong ? 6 : 4 });
     app.fx.sparks.burst(b.pos, b.color, 10, 5, { life: 0.3, bright: 3 });
-    app.fx.glows.emit(b.pos, WHITE, strong ? 0.30 : 0.2, 0.12, { bright: strong ? 4.5 : 3 });
-    app.fx.glows.emit(b.pos, col, strong ? 0.7 : 0.42, 0.26, { bright: 1.4 });
+    app.fx.glows.emit(b.pos, WHITE, strong ? 0.16 : 0.11, 0.1, { bright: strong ? 4 : 3 });
+    app.fx.glows.emit(b.pos, col, strong ? 0.36 : 0.24, 0.22, { bright: 1.1 });
     app.fx.rings.emit(b.pos, strong ? GOLD : col, { r0: 0.06, r1: strong ? 0.5 : 0.3, life: 0.26, bright: strong ? 2.6 : 1.8 });
-    app.env.flash(b.pos, col, strong ? 3.5 : 2.2, 0.3);
+    app.env.flash(b.pos, col, strong ? 2.4 : 1.5, 0.3);
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, strong ? 0.7 : 0.3, 1.1);
-    app.addTrauma(strong ? 0.28 : 0.12); app.kick(strong ? 1 : 0.4); sw.clash(strong ? 1 : 0.6);
+    app.addTrauma(strong ? 0.28 : 0.12); app.kick(strong ? 1 : 0.4); sw.clash(strong ? 0.7 : 0.4);
     this.stopT = strong ? 0.07 : 0.03;
     app.audio.deflect(strong, this.combo - 1, q.nx * 0.7);
     app.feedback(strong ? 'riposte' : 'return');
@@ -299,7 +299,7 @@ export class Game {
     if (res === 'immune') { app.hud.floater(q.x, q.y, 'SHIELDED'); app.audio.shield(pan); return; }
     if (res === 'shield') { app.fx.sparks.burst(p, e.color, 60, 12, { life: 0.7, bright: 4 }); app.fx.debris.burst(p, 9, 8, 1.3); app.fx.rings.emit(p, e.color, { r0: 1, r1: 4, life: 0.5, bright: 3 }); app.audio.shield(pan); app.hud.floater(q.x, q.y, 'ARMOUR BROKEN'); }
     else if (res === 'phase') { app.hud.callout(e.type === 'bastion' ? 'SHELL SHATTERED' : 'SECOND MOVEMENT', true); app.fx.debris.burst(p, 26, 12, 1.6); app.fx.rings.emit(p, e.color, { r0: 1, r1: 9, life: 0.8, bright: 4 }); app.audio.explode(false, pan); app.addTrauma(0.4); this.slowT = 0.5; this.slowScale = 0.3; }
-    else { app.audio.explode(false, pan); app.fx.glows.emit(p, col, 2.5, 0.25, { bright: 3 }); if (e.boss) app.hud.floater(q.x, q.y, `−${dmg}`, b.strong); }
+    else { app.audio.explode(false, pan); app.fx.glows.emit(p, col, 1.2, 0.2, { bright: 2 }); if (e.boss) app.hud.floater(q.x, q.y, `−${dmg}`, b.strong); }
     if (e.boss) {
       app.hud.boss(null, clamp(e.hp / e.maxHp));
       // the Hydra regrows its leashes each time it loses three
@@ -317,8 +317,8 @@ export class Game {
     app.fx.sparks.burst(p, e.color, big ? 220 : 70, big ? 22 : 13, { life: 0.9, bright: 5, grav: 6, drag: 1.6 });
     app.fx.sparks.burst(p, WHITE, big ? 80 : 26, big ? 30 : 18, { life: 0.45, bright: 6, grav: 2 });
     app.fx.debris.burst(p, big ? 60 : 12, big ? 16 : 9, big ? 1.8 : 1);
-    app.fx.glows.emit(p, WHITE, 2.0 * s, 0.2, { bright: 4 });
-    app.fx.glows.emit(p, e.color, 4.5 * s, 0.5, { bright: 1.3 });
+    app.fx.glows.emit(p, WHITE, 1.2 * s, 0.16, { bright: 3.5 });
+    app.fx.glows.emit(p, e.color, 2.8 * s, 0.45, { bright: 1.1 });
     app.fx.rings.emit(p, e.color, { r0: 0.4, r1: 5.5 * s, life: 0.6, bright: 3.5 });
     app.fx.rings.emit(_v.set(p.x, 0.03, p.z), e.color, { r0: 0.5, r1: 7 * s, life: 0.9, flat: true, bright: 1.6, thin: 0.03 });
     app.env.flash(p, e.color, big ? 22 : 9, big ? 1.0 : 0.5);
@@ -348,10 +348,10 @@ export class Game {
   onPlayerHit(b) {
     const { app } = this;
     if (this.state !== 'play' || this.invuln > 0) return;
-    this.integrity--; this.combo = 0; this.invuln = 0.9; this.hitFlash = 1;
+    this.integrity--; this.combo = 0; this.invuln = 0.9; this.hitFlash = 0.6;
     app.hud.setPips(this.integrity); app.hud.setCombo(0, 1); app.sword.setIntegrity(this.integrity);
     app.addTrauma(0.85); app.sword.disturb(1.2); app.audio.hit(); app.feedback('hit');
-    app.post.shock(0.5, 0.5, 1.2, 1.4);
+    app.post.shock(0.5, 0.5, 0.6, 1.4);
     if (this.integrity <= 0) this.die(); else app.hud.callout(this.integrity === 1 ? 'LAST GUARD' : 'TOUCHED');
   }
 

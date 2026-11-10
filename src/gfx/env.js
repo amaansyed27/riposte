@@ -142,9 +142,9 @@ export class Environment {
           }
           vec3 N = normalize(vec3(n.x, 1.0, n.y));
           // planar reflection with ripple distortion
-          vec2 ruv = vUvP.xy / vUvP.w + n * (0.30*nearFade + 0.06);
+          vec2 ruv = vUvP.xy / vUvP.w + n * (0.16*nearFade + 0.05);
           // wet-floor streak: smear the reflection along the view's vertical so highlights pull into long shimmering pillars
-          float sm = (0.010 + 0.05*nearFade) * (0.6 + 0.8*vnoise(P.xz*5.0 + uTime*0.6));
+          float sm = (0.02 + 0.11*nearFade) * (0.6 + 0.8*vnoise(P.xz*5.0 + uTime*0.6));
           vec3 refl = texture2D(tDiffuse, ruv).rgb*0.30;
           refl += texture2D(tDiffuse, ruv + vec2(0.0, sm*0.45)).rgb*0.22 + texture2D(tDiffuse, ruv - vec2(0.0, sm*0.45)).rgb*0.22;
           refl += texture2D(tDiffuse, ruv + vec2(0.0, sm)).rgb*0.13 + texture2D(tDiffuse, ruv - vec2(0.0, sm)).rgb*0.13;
@@ -196,7 +196,18 @@ export class Environment {
   setReflectionSize(w, h) { this.floor.getRenderTarget().setSize(w, h); }
 
   _colonnade() {
-    const stone = new THREE.MeshStandardMaterial({ color: 0x0c0f15, roughness: 0.78, metalness: 0.25, envMapIntensity: 0.12 });
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 512; const cx = cv.getContext('2d');
+    cx.fillStyle = '#8a8f99'; cx.fillRect(0, 0, 256, 512);
+    for (let i = 0; i < 2600; i++) { const v = 90 + Math.random() * 90 | 0; cx.fillStyle = 'rgba(' + v + ',' + v + ',' + (v + 8) + ',0.35)'; cx.fillRect(Math.random() * 256, Math.random() * 512, 2 + Math.random() * 10, 1 + Math.random() * 3); }
+    cx.fillStyle = 'rgba(10,12,16,0.85)';
+    for (let y = 0; y < 512; y += 64) cx.fillRect(0, y, 256, 4);                       // stone courses
+    for (let y = 0; y < 512; y += 64) for (let x = (y / 64 % 2) * 64; x < 256; x += 128) cx.fillRect(x, y, 4, 64);
+    cx.strokeStyle = 'rgba(10,12,16,0.7)'; cx.lineWidth = 3;                            // carved glyphs
+    for (let y = 20; y < 512; y += 64) for (let x = 40; x < 256; x += 128) { cx.beginPath(); const k = Math.random(); if (k < 0.4) cx.arc(x, y + 14, 10, 0, 7); else if (k < 0.7) { cx.moveTo(x - 10, y + 4); cx.lineTo(x + 10, y + 24); cx.moveTo(x + 10, y + 4); cx.lineTo(x - 10, y + 24); } else { cx.moveTo(x, y + 2); cx.lineTo(x, y + 26); cx.moveTo(x - 9, y + 14); cx.lineTo(x + 9, y + 14); } cx.stroke(); }
+    const stoneTex = new THREE.CanvasTexture(cv); stoneTex.colorSpace = THREE.SRGBColorSpace; stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping; stoneTex.repeat.set(2, 5); stoneTex.anisotropy = 8;
+    const stone = new THREE.MeshStandardMaterial({ color: 0x3a4152, map: stoneTex, bumpMap: stoneTex, bumpScale: 3, roughness: 0.82, metalness: 0.15, envMapIntensity: 0.2 });
+    const obelisk = new THREE.CylinderGeometry(0.42, 0.72, 1, 4, 1); obelisk.rotateY(Math.PI / 4);
+    const capG = new THREE.ConeGeometry(0.60, 1, 4); capG.rotateY(Math.PI / 4);
     this.glyphMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.8, 0.6).multiplyScalar(0.5), fog: true });
     const g = new THREE.Group();
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -204,15 +215,16 @@ export class Environment {
       for (const s of [-1, 1]) {
         const h = 9 + i * 1.6 + rand(0, 5);
         const w = 1.7 + rand(0, 0.7);
-        const m = new THREE.Mesh(box, stone);
+        const m = new THREE.Mesh(obelisk, stone);
         const x = s * (7.5 + i * 1.5 + rand(0, 1.2)), z = -7 - i * 9.5 + rand(-1.5, 1.5);
         m.scale.set(w, h, w * 0.8);
         m.position.set(x, h / 2 - 0.2, z);
         m.rotation.y = rand(-0.12, 0.12); m.rotation.z = rand(-0.02, 0.02);
         g.add(m);
+        const cap = new THREE.Mesh(capG, stone); cap.scale.set(w, w * 1.3, w * 0.8); cap.position.set(x, h - 0.2 + w * 0.65, z); cap.rotation.y = m.rotation.y; g.add(cap);
         const strip = new THREE.Mesh(box, this.glyphMat);
         strip.scale.set(0.05, h * 0.55, 0.05);
-        strip.position.set(x - s * (w / 2 + 0.03), h * 0.42, z);
+        strip.position.set(x - s * (w * 0.43 + 0.03), h * 0.42, z);
         g.add(strip);
       }
     }

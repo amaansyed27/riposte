@@ -5,10 +5,10 @@ import { makeBeam } from '../sword/beam.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 export const TYPES = {
-  wisp: { name: 'Remote', hp: 1, score: 100, color: C(1.0, 0.16, 0.07), r: 0.62, charge: 0.55, cd: [1.5, 2.6] },
-  twin: { name: 'Binary', hp: 1, score: 180, color: C(1.0, 0.10, 0.50), r: 0.44, charge: 0.6, cd: [2.0, 3.0] },
-  lancer: { name: 'Lancer', hp: 1, score: 300, color: C(1.0, 0.85, 0.30), r: 0.55, charge: 1.0, cd: [2.4, 3.6] },
-  bulwark: { name: 'Bulwark', hp: 2, score: 400, color: C(1.0, 0.45, 0.02), r: 0.78, charge: 0.7, cd: [1.9, 2.9] },
+  wisp: { name: 'Remote', hull: 0xe9e3d6, hp: 1, score: 100, color: C(1.0, 0.16, 0.07), r: 0.68, charge: 0.55, cd: [1.5, 2.6] },
+  twin: { name: 'Binary', hull: 0x565b6b, hp: 1, score: 180, color: C(1.0, 0.10, 0.50), r: 0.44, charge: 0.6, cd: [2.0, 3.0] },
+  lancer: { name: 'Lancer', hull: 0xd8c394, hp: 1, score: 300, color: C(1.0, 0.85, 0.30), r: 0.55, charge: 1.0, cd: [2.4, 3.6] },
+  bulwark: { name: 'Bulwark', hull: 0xb07a48, hp: 2, score: 400, color: C(1.0, 0.45, 0.02), r: 0.78, charge: 0.7, cd: [1.9, 2.9] },
   maestro: { name: 'The Maestro', boss: true, hp: 12, score: 2500, color: C(1.0, 0.06, 0.12), r: 1.45, charge: 0.9, cd: [1.6, 2.2] },
   hydra: { name: 'The Hydra', boss: true, hp: 9, score: 3500, color: C(0.80, 0.12, 1.0), r: 1.25, charge: 0.8, cd: [1.4, 2.0] },
   bastion: { name: 'The Bastion', boss: true, hp: 16, score: 5000, color: C(1.0, 0.50, 0.08), r: 1.7, charge: 1.0, cd: [1.5, 2.1] },
@@ -52,8 +52,14 @@ function assets() {
     barrel: new THREE.CylinderGeometry(0.11, 0.16, 1.5, 14),
     petal: new THREE.SphereGeometry(1.2, 18, 14, 0, 1.5, 0.55, 2.0),
     shell: new THREE.IcosahedronGeometry(1.16, 1),
+    gun: new THREE.CylinderGeometry(0.10, 0.15, 0.9, 10),
+    tailSeg: new THREE.SphereGeometry(1, 12, 8),
+    spike: new THREE.ConeGeometry(0.2, 1.1, 5),
+    limb: new THREE.CylinderGeometry(0.07, 0.11, 1, 8),
   };
   shared.shellEdges = new THREE.EdgesGeometry(shared.shell, 1);
+  shared.wing = new THREE.ConeGeometry(0.34, 1.5, 4); shared.wing.rotateZ(-Math.PI / 2); shared.wing.scale(1, 1, 0.14);
+  shared.limb.translate(0, 0.5, 0);
   return shared;
 }
 export const glowTexture = () => assets().glowTex;
@@ -85,12 +91,19 @@ export class Enemy {
     this.eyeMat = new THREE.MeshBasicMaterial({ color: T.color.clone().multiplyScalar(3), fog: false });
     this.lensMat = new THREE.MeshBasicMaterial({ color: T.color.clone().multiplyScalar(1.2), fog: false });
     this.trim = new THREE.MeshStandardMaterial({ color: 0x3a4150, metalness: 1, roughness: 0.3, envMapIntensity: 1.4, emissive: T.color.clone(), emissiveIntensity: 0.4 });
-    this.rings = []; this.eyes = []; this.extras = [];
+    this.rings = []; this.eyes = []; this.extras = []; this.wings = []; this.guns = []; this.tail = []; this.arms = [];
+    this.hullM = T.hull ? A.hullMat(T.hull) : null;
     // one orb: panelled sphere, emitter ports, antenna, and a main lens facing +Z
-    const orb = (parent, r, mat = A.hull, ports = true) => {
+    const orb = (parent, r, mat = this.hullM || A.hull, ports = true) => {
       const o = new THREE.Group(); o.scale.setScalar(r); parent.add(o);
       const s = new THREE.Mesh(A.sphere, mat); s.rotation.y = rand(0, 6); o.add(s);
-      o.add(new THREE.Mesh(A.band, A.dark));
+      o.add(new THREE.Mesh(A.band, this.trim));
+      if (!T.boss) {
+        // swept stabiliser wings and an underslung cannon: a silhouette that visibly aims at you
+        for (const sx of [-1, 1]) { const w = new THREE.Mesh(A.wing, A.plate); w.scale.x = sx; w.position.set(sx * 1.5, 0.15, -0.2); o.add(w); this.wings.push({ w, sx }); }
+        const gun = new THREE.Mesh(A.gun, A.dark); gun.rotation.x = Math.PI / 2; gun.position.set(0, -0.66, 0.6); o.add(gun);
+        const tip = new THREE.Mesh(A.lens, this.lensMat); tip.position.set(0, 0.47, 0); tip.scale.setScalar(1.6); gun.add(tip); this.guns.push(gun);
+      }
       if (ports) for (const d of FIB) {
         const p = new THREE.Mesh(A.port, A.dark); p.position.copy(d).multiplyScalar(1.0); p.quaternion.setFromUnitVectors(Y, d); o.add(p);
         const l = new THREE.Mesh(A.lens, this.lensMat); l.position.copy(d).multiplyScalar(1.07); o.add(l);
@@ -106,38 +119,43 @@ export class Enemy {
     const ring = (parent, r, ax, az) => { const m = new THREE.Mesh(A.ring, this.trim); m.scale.setScalar(r); m.rotation.set(ax, 0, az); parent.add(m); this.rings.push(m); return m; };
     const beam = (w = 0.1, core = 0.008) => { const b = makeBeam({ width: w, core, timeUniform: app.timeU }); b.material.uniforms.uColor.value.copy(T.color); b.visible = false; app.scene.add(b); this.extras.push(b); return b; };
 
+    const limbs = (o, n, len) => { for (let i = 0; i < n; i++) { const sx = i % 2 ? 1 : -1; const up = new THREE.Group(); up.position.set(sx * 0.95, 0.1 - Math.floor(i / 2) * 0.5, 0); o.add(up); const a = new THREE.Mesh(A.limb, A.plate); a.scale.set(1.4, len, 1.4); up.add(a); const fore = new THREE.Group(); fore.position.y = len; up.add(fore); const b = new THREE.Mesh(A.limb, A.dark); b.scale.set(1, len * 0.9, 1); fore.add(b); const tip = new THREE.Mesh(A.eye, this.lensMat); tip.position.y = len * 0.9; tip.scale.setScalar(0.7); fore.add(tip); this.arms.push({ up, fore, sx, ph: i * 1.7 }); } };
+    const spikes = (o, n, r, s = 1) => { for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, d = new THREE.Vector3(Math.cos(a), Math.sin(a), -0.15).normalize(); const c = new THREE.Mesh(A.spike, A.plate); c.position.copy(d).multiplyScalar(r); c.quaternion.setFromUnitVectors(Y, d); c.scale.setScalar(s); o.add(c); } };
     if (type === 'wisp') orb(g, T.r);
     else if (type === 'twin') {
       this.spinner = new THREE.Group(); g.add(this.spinner);
       for (const s of [-1, 1]) orb(this.spinner, T.r).position.x = s * 0.85;
       this.tether = beam(0.12, 0.012);
     } else if (type === 'lancer') {
-      const o = orb(g, T.r, A.hullDark);
+      const o = orb(g, T.r);
       const b = new THREE.Mesh(A.barrel, A.dark); b.rotation.x = Math.PI / 2; b.position.z = 1.5; o.add(b);
       const tip = new THREE.Mesh(A.eye, this.eyeMat); tip.position.z = 2.3; tip.scale.setScalar(0.45); o.add(tip);
       this.eyes[0].e = tip; this.eyes[0].sp.position.z = 2.35; this.eyes[0].s = 0.6;
       ring(o, 1.35, Math.PI / 2, 0);
       this.sight = beam(0.09, 0.007);
     } else if (type === 'bulwark') {
-      const o = orb(g, T.r, A.hullDark, false);
+      const o = orb(g, T.r, undefined, false);
       this.petals = new THREE.Group(); o.add(this.petals);
       for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(A.petal, A.plate); p.rotation.y = i * 2.094; this.petals.add(p); }
       this.shield = new THREE.Mesh(A.sphere, shieldMaterial(T.color)); this.shield.scale.setScalar(1.36); this.shield.renderOrder = 3; o.add(this.shield);
     } else if (type === 'maestro') {
       const o = orb(g, T.r, A.hullBoss);
-      ring(o, 1.5, 0.3, 0); ring(o, 1.85, 1.2, 0.4); ring(o, 2.25, -0.7, 1.1);
+      ring(o, 1.5, 0.3, 0); ring(o, 1.85, 1.2, 0.4);
+      limbs(o, 4, 1.5);          // the conductor's arms
     } else if (type === 'hydra') {
       const o = orb(g, T.r, A.hullMat(0x3a2c48));
-      ring(o, 1.3, Math.PI / 2, 0); ring(o, 1.3, 0, 0);
+      ring(o, 1.3, Math.PI / 2, 0); spikes(o, 9, 1.35, 1.25);
       this.shield = new THREE.Mesh(A.sphere, shieldMaterial(T.color)); this.shield.scale.setScalar(1.5); this.shield.renderOrder = 3; this.shield.visible = false; o.add(this.shield);
     } else if (type === 'bastion') {
       const o = orb(g, T.r, A.hullBoss, false);
       this.shell = new THREE.Group(); o.add(this.shell);
-      this.shell.add(new THREE.Mesh(A.shell, A.plate));
+      this.shell.add(new THREE.Mesh(A.shell, A.plate)); spikes(this.shell, 6, 1.55, 1.7);
       this.seams = new THREE.LineSegments(A.shellEdges, new THREE.LineBasicMaterial({ color: T.color.clone().multiplyScalar(2.5), fog: false })); this.seams.scale.setScalar(1.004); this.shell.add(this.seams);
       this.eyes[0].e.position.z = 1.18; this.eyes[0].sp.position.z = 1.3;
     }
     app.scene.add(g);
+    // a trailing tail that lags behind every move: the orb reads as alive, not as a prop
+    if (!T.boss) for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(A.tailSeg, i % 2 ? this.trim : A.plate); m.scale.setScalar(T.r * 0.26 * (1 - i * 0.15)); app.scene.add(m); this.tail.push(m); }
   }
   get muzzle() { return this.muzzleOf(0); }
   muzzleOf(i) { const e = this.eyes[i % this.eyes.length].e; return e.getWorldPosition(this._m); }
@@ -146,6 +164,7 @@ export class Enemy {
     this.slot.copy(slot);
     this.from.set(slot.x * 2.2 + rand(-6, 6), slot.y + rand(10, 22), slot.z - rand(40, 60));
     this.pos.copy(this.from); this.group.position.copy(this.pos);
+    for (const m of this.tail) m.position.copy(this.pos);
   }
 
   update(dt, time, game) {
@@ -159,7 +178,7 @@ export class Enemy {
     this.dartClock -= dt;
     if (this.dartClock <= 0 && this.state === 'idle') {
       this.dartClock = rand(1.2, 2.8);
-      const k = this.boss ? 0.6 : 1.3; this.dartT.set(rand(-k, k), rand(-k * 0.6, k * 0.6), rand(-0.6, 0.6));
+      const k = (this.boss ? 0.6 : 1.3) * Math.min(1, this.app.aspect * 0.9); this.dartT.set(rand(-k, k), rand(-k * 0.6, k * 0.6), rand(-0.6, 0.6));
     }
     this.dart.lerp(this.dartT, clamp(dt * 7));
     const bob = this.boss ? 0.35 : 0.16;
@@ -188,7 +207,12 @@ export class Enemy {
     for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (0.9 + ck * 1.2) * pulse); s.material.color.copy(this.color).multiplyScalar(0.5 + ck * 1.0); }
     if (this.shield) { const u = this.shield.material.uniforms; u.uTime.value = time; u.uHit.value = Math.max(0, u.uHit.value - dt * 3); if (this.type === 'hydra') this.shield.visible = this.shielded; }
     if (this.seams) this.seams.material.color.copy(this.color).multiplyScalar(1.5 + ck * 4 + this.flinch * 5);
+    for (const { w, sx } of this.wings) { w.rotation.z = sx * (0.18 + 0.22 * Math.sin(time * 3.2 + this.seed) + ck * 0.5); w.rotation.y = sx * (0.5 + ck * 0.35); }
+    for (const gun of this.guns) gun.position.z = 0.6 + Math.min(ck, 1) * 0.12 - Math.max(0, ck - 1) * 1.6;
+    for (const a of this.arms) { a.up.rotation.z = -a.sx * (1.0 + Math.sin(time * (1.6 + ck * 5) + a.ph) * 0.55); a.up.rotation.x = Math.sin(time * 1.3 + a.ph) * 0.4; a.fore.rotation.z = -a.sx * (0.5 + Math.sin(time * (2.3 + ck * 6) + a.ph * 2) * 0.6); }
     g.updateMatrixWorld(true);
+    let px = g.position.x, py = g.position.y - this.T.r * 0.95, pz = g.position.z - 0.15;
+    for (let i = 0; i < this.tail.length; i++) { const m = this.tail[i].position, k = clamp(dt * (16 - i * 2)); m.x += (px - m.x) * k; m.y += (py - m.y) * k; m.z += (pz - m.z) * k; px = m.x; py = m.y - this.T.r * 0.34; pz = m.z - 0.06; }
     if (this.sight) {
       this.sight.visible = this.state === 'charge' && !!this.aimW;
       if (this.sight.visible) { const u = this.sight.material.uniforms; u.uA.value.copy(this.muzzle); u.uB.value.copy(this.aimW); u.uPower.value = 0.25 + ck * ck * 1.4; }
@@ -223,6 +247,8 @@ export class Enemy {
     this.alive = false; this.app.scene.remove(this.group);
     for (const b of this.extras) { this.app.scene.remove(b); b.material.dispose(); }
     for (const { sp } of this.eyes) sp.material.dispose();
+    for (const m of this.tail) this.app.scene.remove(m);
+    if (this.hullM) this.hullM.dispose();
     this.eyeMat.dispose(); this.lensMat.dispose(); this.trim.dispose();
   }
 }

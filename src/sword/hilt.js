@@ -63,8 +63,8 @@ export function buildHilt() {
     throat: new THREE.MeshStandardMaterial({ color: 0x08090b, metalness: 0.8, roughness: 0.6, emissive: 0x000000, side: THREE.DoubleSide, envMapIntensity: 0.3 }),
     stud: new THREE.MeshStandardMaterial({ color: 0x220806, metalness: 0.3, roughness: 0.4, emissive: 0x000000 }),
     pip: new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }),
-    glove: new THREE.MeshStandardMaterial({ color: 0x15171c, metalness: 0.55, roughness: 0.5, envMapIntensity: 0.45 }),
-    gloveSoft: new THREE.MeshStandardMaterial({ color: 0x08090b, metalness: 0.05, roughness: 0.9, envMapIntensity: 0.2 }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x5b626e, metalness: 0.9, roughness: 0.38, envMapIntensity: 1.0 }),
+    gloveSoft: new THREE.MeshStandardMaterial({ color: 0x23262d, metalness: 0.1, roughness: 0.8, envMapIntensity: 0.35 }),
     seam: new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }),
   };
 
@@ -170,11 +170,10 @@ export function buildHilt() {
   const seg = (r0, r1, y0, y1, mat) => { const geo = new THREE.CylinderGeometry(r1, r0, y1 - y0, 28); geo.translate(0, (y0 + y1) / 2, 0); const m = new THREE.Mesh(geo, mat); m.scale.set(1.12, 1, 0.84); arm.add(m); return m; };
   const seamAt = (r, y) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.0016, 8, 44), M.seam); m.rotation.x = Math.PI / 2; m.position.y = y; m.scale.set(1.12, 0.84, 1); arm.add(m); };
   seg(0.027, 0.030, 0.0, 0.05, M.gloveSoft);
-  seg(0.034, 0.041, 0.035, 0.125, M.glove); seamAt(0.0415, 0.128);
-  seg(0.039, 0.047, 0.118, 0.235, M.glove); seamAt(0.0475, 0.238);
-  const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.19, 0.012), M.dark); ridge.position.set(0, 0.14, 0.036); arm.add(ridge);
+  seg(0.040, 0.031, 0.035, 0.150, M.glove); seamAt(0.0405, 0.052);
+  const stub = new THREE.Mesh(new THREE.SphereGeometry(0.031, 16, 10), M.gloveSoft); stub.scale.set(1.12, 0.6, 0.84); stub.position.y = 0.150; arm.add(stub);
   const foreG = new THREE.CylinderGeometry(0.064, 0.045, 1, 28); foreG.translate(0, 0.5, 0);
-  const fore = new THREE.Mesh(foreG, M.glove); fore.position.y = 0.228; fore.scale.set(1.12, 1, 0.84); arm.add(fore);
+  const fore = new THREE.Mesh(foreG, M.glove); fore.visible = false;   // floating gauntlet: the cuff ends in the dark instead of a pipe to the screen edge
   const wrist = palmC.clone().addScaledVector(fdir, 0.03);
 
   return { group: g, M, stud, studPhi, pips, fins, throat, crystal, hand, arm, fore, wrist };

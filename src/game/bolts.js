@@ -12,7 +12,7 @@ export class Bolts {
     this.app = app; this.items = [];
     const ringGeo = new THREE.PlaneGeometry(2, 2);
     for (let i = 0; i < n; i++) {
-      const beam = makeBeam({ width: 0.7, core: 0.06, white: 2.6, timeUniform: app.timeU });
+      const beam = makeBeam({ width: 0.55, core: 0.07, white: 0.5, timeUniform: app.timeU });
       beam.visible = false; app.scene.add(beam);
       const ring = new THREE.Mesh(ringGeo, new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false,
@@ -40,7 +40,7 @@ export class Bolts {
     Object.assign(b, { live: true, state: 'in', enemy, t: -delay, dur, size, done: false, strong: false });
     b.S.copy(S); b.T.copy(T); b.pos.copy(S); b.prev.copy(S); b.color.copy(enemy.color);
     b.beam.material.uniforms.uColor.value.copy(b.color);
-    b.beam.material.uniforms.uCore.value = 0.06 * size; b.beam.material.uniforms.uWidth.value = 0.7 * size;
+    b.beam.material.uniforms.uCore.value = 0.07 * size; b.beam.material.uniforms.uWidth.value = 0.55 * size;
     b.ring.material.uniforms.uColor.value.copy(b.color);
     b.ring.position.copy(T); b.ring.scale.setScalar(RING_R * Math.sqrt(size));
     return b;
@@ -75,8 +75,8 @@ export class Bolts {
       if (b.state === 'in') {
         b.pos.lerpVectors(b.S, b.T, b.t / b.dur);
         _d.subVectors(b.T, b.S).normalize();
-        u.uB.value.copy(b.pos); u.uA.value.copy(b.pos).addScaledVector(_d, -Math.min(1.8 * b.size, b.t * 14));
-        u.uPower.value = 1.0;
+        u.uB.value.copy(b.pos); u.uA.value.copy(b.pos).addScaledVector(_d, -Math.min(0.55 * b.size, b.t * 14));
+        u.uPower.value = 0.8 + 0.25 * Math.sin(b.t * 40);
         const rem = b.dur - b.t;
         const ra = clamp((1.15 - rem) / 0.3) * clamp((rem + 0.12) / 0.05);
         b.ring.visible = ra > 0.01;
@@ -87,7 +87,7 @@ export class Bolts {
           ru.uA.value = ra; ru.uHot.value = rem < 0.16 ? 1 : 0;
         }
         app.env.light(b.light.copy(b.pos), b.color, 1.3 * b.size);
-        b.head.position.copy(b.pos); b.head.scale.setScalar(1.0 * b.size); b.head.material.color.copy(b.color).multiplyScalar(2.2).addScalar(0.5);
+        b.head.position.copy(b.pos); b.head.scale.setScalar((1.25 + 0.2 * Math.sin(b.t * 40)) * b.size); b.head.material.color.copy(b.color).multiplyScalar(2.6).addScalar(0.25);
         if (b.t > b.dur + 0.10) { game.onPlayerHit(b); this.kill(b); }
       } else {
         if (b.target.alive) b.last.copy(b.target.group.position);
