@@ -4,7 +4,7 @@ import { Reflector } from 'three/addons/objects/Reflector.js';
 import { GLSL_NOISE, rand, clamp } from '../core/util.js';
 
 const FOG = new THREE.Color(0.010, 0.017, 0.030);
-export const ECLIPSE_DIR = new THREE.Vector3(0, 0.36, -1).normalize();
+export const ECLIPSE_DIR = new THREE.Vector3(0, 0.275, -1).normalize();
 const MAXL = 6;
 const WHITE = new THREE.Color(1, 1, 1);
 
@@ -143,7 +143,11 @@ export class Environment {
           vec3 N = normalize(vec3(n.x, 1.0, n.y));
           // planar reflection with ripple distortion
           vec2 ruv = vUvP.xy / vUvP.w + n * (0.30*nearFade + 0.06);
-          vec3 refl = texture2D(tDiffuse, ruv).rgb;
+          // wet-floor streak: smear the reflection along the view's vertical so highlights pull into long shimmering pillars
+          float sm = (0.010 + 0.05*nearFade) * (0.6 + 0.8*vnoise(P.xz*5.0 + uTime*0.6));
+          vec3 refl = texture2D(tDiffuse, ruv).rgb*0.30;
+          refl += texture2D(tDiffuse, ruv + vec2(0.0, sm*0.45)).rgb*0.22 + texture2D(tDiffuse, ruv - vec2(0.0, sm*0.45)).rgb*0.22;
+          refl += texture2D(tDiffuse, ruv + vec2(0.0, sm)).rgb*0.13 + texture2D(tDiffuse, ruv - vec2(0.0, sm)).rgb*0.13;
           float cosT = max(dot(N,V), 0.0);
           float F = mix(0.16, 1.0, pow(1.0-cosT, 3.2));
           // stone court under the water

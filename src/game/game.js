@@ -258,7 +258,7 @@ export class Game {
     app.addTrauma(perfect ? 0.3 : 0.16); app.kick(perfect ? 1 : 0.5);
     this.stopT = perfect ? 0.075 : 0.035;
     app.audio.deflect(perfect, this.combo - 1, q.nx * 0.7);
-    if (navigator.vibrate) { try { navigator.vibrate(perfect ? 22 : 10); } catch {} }
+    if (navigator.vibrate && navigator.userActivation?.hasBeenActive) { try { navigator.vibrate(perfect ? 22 : 10); } catch {} }
     if (this.chain === 2) app.hud.callout('DOUBLE'); else if (this.chain === 3) app.hud.callout('TRIPLE'); else if (this.chain >= 4) app.hud.callout('FLÈCHE', true);
     else if (perfect) app.hud.callout('PERFECT', true);
     else if (this.combo % 10 === 0) app.hud.callout(`${this.combo} RETURNED`);
@@ -338,7 +338,7 @@ export class Game {
     app.hud.setPips(this.integrity); app.hud.setCombo(0); app.sword.setIntegrity(this.integrity);
     app.addTrauma(0.85); app.sword.disturb(1.2); app.audio.hit();
     app.post.shock(0.5, 0.5, 1.2, 1.4);
-    if (navigator.vibrate) { try { navigator.vibrate([40, 30, 60]); } catch {} }
+    if (navigator.vibrate && navigator.userActivation?.hasBeenActive) { try { navigator.vibrate([40, 30, 60]); } catch {} }
     if (this.integrity <= 0) this.die(); else app.hud.callout(this.integrity === 1 ? 'LAST GUARD' : 'TOUCHED');
   }
 

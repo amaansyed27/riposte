@@ -82,7 +82,7 @@ app.sword.onEvent = (ev) => {
     app.kick(1.4); app.addTrauma(0.22);
     app.env.ripple(0, -0.6, 1.5); app.env.courtPulse(0, 0, 1);
     const q = app.project(s.A); app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, 0.3, 1.3);
-    if (navigator.vibrate) { try { navigator.vibrate(18); } catch {} }
+    if (navigator.vibrate && navigator.userActivation?.hasBeenActive) { try { navigator.vibrate(18); } catch {} }
   }
   if (ev === 'retract-start') app.audio.retract();
   if (ev === 'retract-done') { app.audio.retractSnap(); app.kick(-0.4); }
@@ -237,6 +237,8 @@ window.__riposte = {
   app,
   manual(on = true) { manual = on; last = performance.now(); return manual; },
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) frame(dt, i === n - 1); return { t: +app.time.toFixed(3), state: app.sword.state, len: +app.sword.len.toFixed(3), power: +app.sword.power.toFixed(2), game: app.game.state }; },
+  // simulate without drawing until fn() is true (or max frames); returns frames advanced
+  until(fn, max = 6000, dt = 1 / 60) { let i = 0; while (!fn() && i++ < max) frame(dt, false); return i; },
   ignite: () => app.sword.ignite(), retract: () => app.sword.retract(),
   start: () => { app.audio.unlock(); app.game.start(); },
   autoplay(on = true) { app.autoplay = on; return on; },

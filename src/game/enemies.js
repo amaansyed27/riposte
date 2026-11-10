@@ -7,8 +7,8 @@ export const TYPES = {
   wisp: { hp: 1, score: 100, color: new THREE.Color(1.0, 0.22, 0.10), scale: 1.45, charge: 0.55, cd: [1.5, 2.6] },
   twin: { hp: 1, score: 180, color: new THREE.Color(1.0, 0.10, 0.48), scale: 1.45, charge: 0.6, cd: [2.0, 3.0] },
   lancer: { hp: 1, score: 300, color: new THREE.Color(1.0, 0.72, 0.18), scale: 1.4, charge: 1.0, cd: [2.4, 3.6] },
-  bulwark: { hp: 2, score: 400, color: new THREE.Color(1.0, 0.36, 0.06), scale: 1.7, charge: 0.7, cd: [1.9, 2.9] },
-  maestro: { hp: 12, score: 2500, color: new THREE.Color(1.0, 0.08, 0.14), scale: 1.25, charge: 0.9, cd: [1.6, 2.2] },
+  bulwark: { hp: 2, score: 400, color: new THREE.Color(1.0, 0.36, 0.06), scale: 1.45, charge: 0.7, cd: [1.9, 2.9] },
+  maestro: { hp: 12, score: 2500, color: new THREE.Color(1.0, 0.08, 0.14), scale: 1.6, charge: 0.9, cd: [1.6, 2.2] },
 };
 
 let shared = null;
@@ -44,7 +44,7 @@ function shieldMaterial(color) {
     fragmentShader: `uniform vec3 uColor; uniform float uTime,uHit; varying vec3 vN; varying vec3 vV; varying vec3 vP;
       void main(){ float f = pow(1.0-abs(dot(normalize(vN),normalize(vV))), 2.2);
         vec3 q = vP*7.0; float hex = abs(sin(q.x+uTime)*sin(q.y*1.15-uTime*0.7)*sin(q.z)); float grid = smoothstep(0.05,0.0,hex);
-        gl_FragColor = vec4(uColor*(f*1.6 + grid*(0.35+uHit*3.0) + uHit*0.6), 1.0); }`,
+        gl_FragColor = vec4(uColor*(f*0.9 + grid*(0.16+uHit*3.0) + uHit*0.6), 1.0); }`,
   });
 }
 
@@ -72,12 +72,12 @@ export class Enemy {
     const addRing = (r, geo = A.ring, ax = 0, az = 0) => { const m = new THREE.Mesh(geo, this.trim); m.scale.setScalar(r); m.rotation.set(ax, 0, az); g.add(m); this.rings.push(m); return m; };
     if (type === 'wisp') {
       const b = new THREE.Mesh(A.octa, A.hull); b.scale.set(1, 1.25, 1); g.add(b); this.body = b;
-      addRing(1); addEye(0, 0, 0.5);
+      addRing(1, A.ring, 1.1, 0.35); addRing(0.78, A.ring, -0.9, -0.6); addEye(0, 0, 0.5);
       for (let i = 0; i < 3; i++) { const f = new THREE.Mesh(A.fin, A.hull); const a = i * 2.094 + 0.5; f.position.set(Math.cos(a) * 0.75, -0.35, Math.sin(a) * 0.3 - 0.2); f.rotation.z = Math.PI + Math.cos(a) * 0.5; f.scale.setScalar(0.8); g.add(f); }
     } else if (type === 'twin') {
       for (const s of [-1, 1]) { const b = new THREE.Mesh(A.octa, A.hull); b.position.x = s * 0.7; b.scale.setScalar(0.8); g.add(b); addEye(s * 0.7, 0, 0.42, 0.85); }
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 6), A.hull2); bar.rotation.z = Math.PI / 2; g.add(bar);
-      addRing(0.62, A.ring, 0, 0).position.x = -0.7; addRing(0.62, A.ring, 0, 0).position.x = 0.7;
+      addRing(0.62, A.ring, 1.2, 0.3).position.x = -0.7; addRing(0.62, A.ring, 1.2, -0.3).position.x = 0.7;
     } else if (type === 'lancer') {
       const n = new THREE.Mesh(A.needle, A.hull); n.rotation.x = Math.PI / 2; n.position.z = -0.7; g.add(n);
       const n2 = new THREE.Mesh(A.needle, A.hull2); n2.rotation.x = -Math.PI / 2; n2.scale.set(0.5, 0.35, 0.5); n2.position.z = 0.75; g.add(n2);
@@ -138,7 +138,7 @@ export class Enemy {
     }
     const ck = this.chargeK;
     const sp = this.spin * (1 + ck * 7) * (this.phase === 2 ? 1.8 : 1);
-    this.rings.forEach((r, i) => { if (this.type === 'maestro' || this.type === 'bulwark') { r.rotation.x += dt * sp * (0.5 + i * 0.3); r.rotation.y += dt * sp * 0.4; } else r.rotation.z += dt * sp * (i % 2 ? -1 : 1) * 1.6; });
+    this.rings.forEach((r, i) => { if (this.type === 'maestro' || this.type === 'bulwark') { r.rotation.x += dt * sp * (0.5 + i * 0.3); r.rotation.y += dt * sp * 0.4; } else if (this.type === 'lancer') r.rotation.z += dt * sp * (i % 2 ? -1 : 1) * 1.6; else { r.rotation.y += dt * sp * (i % 2 ? -1.3 : 1); r.rotation.x += dt * sp * 0.35; } });
     const pulse = 1 + 0.15 * Math.sin(time * 5 + this.seed);
     this.eyeMat.color.copy(this.color).multiplyScalar((2.2 + ck * 9) * pulse).addScalar(ck * ck * 2.5);
     for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (1.1 + ck * 1.3) * pulse); s.material.color.copy(this.color).multiplyScalar(0.55 + ck * 1.1); }

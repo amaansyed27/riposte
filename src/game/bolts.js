@@ -20,8 +20,10 @@ export class Bolts {
         vertexShader: `varying vec2 vUv; void main(){ vUv = uv*2.0-1.0; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
         fragmentShader: `uniform vec3 uColor; uniform float uR,uA,uHot; varying vec2 vUv;
           void main(){ float r = length(vUv); float w = fwidth(r)*1.5;
-            float outer = smoothstep(0.022+w, 0.0, abs(r-uR));
-            float inner = smoothstep(0.012+w, 0.0, abs(r-0.24))*0.55 + smoothstep(0.24,0.0,r)*0.10;
+            float ang = atan(vUv.y, vUv.x);
+            float dash = smoothstep(0.30, 0.42, abs(fract(ang*8.0/6.2831853 + uR*1.5) - 0.5)*2.0);
+            float outer = smoothstep(0.022+w, 0.0, abs(r-uR)) * mix(1.0, dash, 0.85*(1.0-uHot));
+            float inner = smoothstep(0.012+w, 0.0, abs(r-0.24))*0.7 + smoothstep(0.24,0.0,r)*0.10 + smoothstep(0.035+w, 0.015, r)*0.9;
             float ticks = outer * 0.0;
             vec3 c = mix(uColor, vec3(1.0), uHot*0.7);
             gl_FragColor = vec4(c*(outer*(1.2+uHot*2.5) + inner*(0.6+uHot*1.6))*uA, 1.0); }`,
