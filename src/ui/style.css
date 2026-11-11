@@ -42,9 +42,6 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
   color: transparent; -webkit-text-stroke: clamp(1.2px, .22vw, 3px) var(--gold);
   filter: drop-shadow(0 0 22px rgba(255, 200, 60, .35));
 }
-#wordmark span { display: inline-block; opacity: 0; transform: translateY(.18em) scale(1.25); animation: stamp .7s cubic-bezier(.2,.9,.2,1) forwards; }
-#wordmark span:nth-child(1){animation-delay:1.05s} #wordmark span:nth-child(2){animation-delay:1.12s} #wordmark span:nth-child(3){animation-delay:1.19s}
-#wordmark span:nth-child(4){animation-delay:1.26s} #wordmark span:nth-child(5){animation-delay:1.33s} #wordmark span:nth-child(6){animation-delay:1.40s} #wordmark span:nth-child(7){animation-delay:1.47s}
 @keyframes stamp { 60% { opacity: 1; } to { opacity: 1; transform: none; } }
 #wordmark::after { content: "RIPOSTE"; position: absolute; inset: 0; color: var(--gold); -webkit-text-stroke: 0; opacity: 0; animation: fill 1.3s 1.7s ease-out forwards; -webkit-mask-image: linear-gradient(100deg, #000 0 40%, transparent 60%); -webkit-mask-size: 260% 100%; mask-image: linear-gradient(100deg, #000 0 40%, transparent 60%); mask-size: 260% 100%; }
 @keyframes fill { 0% { opacity: .0; -webkit-mask-position: 100% 0; mask-position: 100% 0; } 30% { opacity: .95; } 100% { opacity: .0; -webkit-mask-position: 0 0; mask-position: 0 0; } }
@@ -206,12 +203,12 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 @keyframes blIgnite { 0% { transform: scaleY(0); filter: brightness(2.4); } 75% { transform: scaleY(1.05); } 100% { transform: scaleY(1); filter: none; } }
 @keyframes blHum { 0%,100% { opacity: 1; } 47% { opacity: .92; } 50% { opacity: .78; } 53% { opacity: .97; } }
 /* mirror court: the mark lies in the water beneath itself */
-.wm-mirror { position: absolute; left: .34em; top: 100%; transform: scaleY(-1) translateY(.14em); transform-origin: 50% 0; opacity: 0; filter: blur(.012em);
+.wm-mirror { position: absolute; left: .34em; top: 0; transform: scaleY(-1) translateY(-.12em); transform-origin: 50% 100%; opacity: 0; filter: blur(.012em);
   -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.55), transparent 78%); mask-image: linear-gradient(to top, rgba(0,0,0,.55), transparent 78%);
   text-shadow: 0 0 .3em rgba(var(--blade), .8); animation: wmMirror 2.4s 1.2s ease-out forwards, wmRipple 5s 3.6s ease-in-out infinite; }
 .wm-mirror .bl::before { animation: blIgnite .5s 2.15s cubic-bezier(.1,.8,.2,1) forwards; }
 @keyframes wmMirror { to { opacity: .42; } }
-@keyframes wmRipple { 0%,100% { transform: scaleY(-1) translateY(.14em) skewX(0deg); } 50% { transform: scaleY(-1.04) translateY(.14em) skewX(-1.2deg); } }
+@keyframes wmRipple { 0%,100% { transform: scaleY(-1) translateY(-.12em) skewX(0deg); } 50% { transform: scaleY(-1.05) translateY(-.12em) skewX(-1.4deg); } }
 #intro .tag { margin-top: calc(clamp(40px, 11.6vw, 150px) * .98); }
 #intro { padding-top: calc(9vh + var(--sat)); }
 
