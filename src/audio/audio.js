@@ -1,5 +1,6 @@
 // Everything you hear is synthesised: hum, ignition, retraction, deflect chimes, enemies, rain, thunder and a reactive score.
 import { clamp, rand } from '../core/util.js';
+import { Score } from './score.js';
 
 const SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24]; // D minor pentatonic, climbing with your streak
 const ROOT = 146.83; // D3
@@ -28,6 +29,10 @@ export class Audio {
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
     this.noiseBuf = nb;
     this._hum(); this._rain(); this._pad();
+    // the adaptive orchestral score; until its beds have loaded (or if they fail) the synthesized pad stands in
+    this.score = new Score(ctx, master, this.wet);
+    this.score.setState(this._musicState || 'menu');
+    this.score.load(import.meta.env.BASE_URL + 'audio/').then((ok) => { if (ok) { this.useScore = true; this.padGain.gain.setTargetAtTime(0, ctx.currentTime, 1.2); } });
     this.ready = true;
     this._sched = setInterval(() => this._music(), 40);
     this.nextT = ctx.currentTime + 0.1;
@@ -72,6 +77,9 @@ export class Audio {
     const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 23; lg.gain.value = 0.2; lfo.connect(lg).connect(am.gain); lfo.start();
     const lfo2 = ctx.createOscillator(), lg2 = ctx.createGain(); lfo2.frequency.value = 0.6; lg2.gain.value = 0.1; lfo2.connect(lg2).connect(am.gain); lfo2.start();
     am.connect(this.humLP).connect(this.humGain);
+    this.humFl = ctx.createDelay(0.03); this.humFl.delayTime.value = 0.0065;
+    const fb = ctx.createGain(); fb.gain.value = 0.5; const flg = ctx.createGain(); flg.gain.value = 0.55;
+    this.humLP.connect(this.humFl); this.humFl.connect(fb).connect(this.humFl); this.humFl.connect(flg).connect(this.humGain);
     this.humGain.connect(this.dry); const w = ctx.createGain(); w.gain.value = 0.25; this.humGain.connect(w).connect(this.wet);
     // swing whoosh
     this.swGain = ctx.createGain(); this.swGain.gain.value = 0;
@@ -87,6 +95,7 @@ export class Audio {
     for (const o of this.humOsc) o.detune.setTargetAtTime(det, t, 0.05);
     this.swGain.gain.setTargetAtTime(Math.min(1, power) * swing * swing * 0.42, t, 0.03);
     this.swBP.frequency.setTargetAtTime(420 + swing * 2300, t, 0.04);
+    this.humFl.delayTime.setTargetAtTime(0.0065 - swing * 0.0042, t, 0.035);
   }
   _rain() {
     const ctx = this.ctx, hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -109,7 +118,11 @@ export class Audio {
     this.padLP.connect(this.padGain); this.padGain.connect(this.wet); const d = ctx.createGain(); d.gain.value = 0.4; this.padGain.connect(d).connect(this.dry);
     this.padGain.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5);
   }
-  setIntensity(x) { this.intensity = clamp(x); }
+  setIntensity(x) { this.intensity = clamp(x); if (this.score) this.score.setIntensity(x); }
+  // where the game is: menu | select | bout | boss | rest | win | dead
+  music(state) { this._musicState = state; if (this.score) this.score.setState(state); }
+  accent(kind) { if (this.useScore) this.score.accent(kind); }
+  muffle(on) { if (this.score) this.score.setMuffle(on); }
   setPlaying(p) { this.playing = p; }
   _music() {
     if (!this.ready || this.ctx.state !== 'running') return;
@@ -123,7 +136,7 @@ export class Audio {
         for (const o of this.padOsc) o.frequency.setTargetAtTime(note(o.semi + rootShift), tt, 0.6);
         this.padLP.frequency.setTargetAtTime(420 + I * 1500, tt, 1.2);
       }
-      if (this.playing) {
+      if (this.playing && !this.useScore) {
         // heartbeat bass
         if (s % 4 === 0 || (I > 0.45 && s % 4 === 3)) this._tone('sawtooth', note(-24 + rootShift), note(-24 + rootShift), 0.22, 0.2 + I * 0.1, { delay: t, wet: 0.1, filter: { f: 160 + I * 500, q: 4 } });
         if (s % 8 === 0) this._tone('sine', 110, 38, 0.16, 0.5, { delay: t, wet: 0.05 });
@@ -171,12 +184,16 @@ export class Audio {
   fire(kind, pan = 0) {
     if (!this.ready) return;
     const hi = kind === 'lancer' ? 2400 : kind === 'maestro' ? 700 : 1200;
+    this._tone('sine', hi * 1.7, hi * 0.11, 0.17, 0.3, { pan, wet: 0.35 });
+    this._tone('sawtooth', hi * 1.2, hi * 0.1, 0.13, 0.12, { pan, wet: 0.3, filter: { f: 3400, q: 3 } });
+    this._tone('sine', hi * 1.5, hi * 0.11, 0.15, 0.09, { pan: -pan * 0.6, wet: 0.8, delay: 0.09 });
     this._tone('square', hi, hi * 0.18, 0.22, 0.2, { pan, wet: 0.5, filter: { f: 2600, q: 2 } });
     this._burst('bandpass', hi * 1.5, hi * 0.4, 2, 0.14, 0.25, { pan, wet: 0.4 });
   }
   charge(pan = 0) { if (!this.ready) return; this._tone('sine', 220, 880, 0.5, 0.05, { pan, wet: 0.8, attack: 0.3 }); }
   explode(big, pan = 0) {
     if (!this.ready) return;
+    if (big && this.score) this.score.duck(0.5, 1.4);
     this._burst('lowpass', big ? 2600 : 1800, 70, 0.8, big ? 1.3 : 0.6, big ? 1.2 : 0.8, { pan, wet: 0.7 });
     this._tone('sine', big ? 120 : 150, 28, big ? 0.9 : 0.4, 1.0, { pan, wet: 0.3 });
     this._burst('highpass', 4000, 1500, 0.8, 0.25, 0.3, { pan, wet: 0.5 });
@@ -184,12 +201,13 @@ export class Audio {
   shield(pan = 0) { if (!this.ready) return; for (let i = 0; i < 5; i++) this._tone('sine', 1800 + i * 430 + rand(-60, 60), 1500 + i * 400, 0.35, 0.09, { pan, wet: 0.9, delay: i * 0.018 }); }
   hit() {
     if (!this.ready) return;
+    if (this.score) this.score.duck(0.65, 1.1);          // the blow you took is the loudest thing in the room
     const t = this.ctx.currentTime;
     this._burst('lowpass', 3000, 90, 1, 0.6, 1.3, { wet: 0.5 });
     this._tone('sawtooth', 90, 24, 0.7, 0.8, { wet: 0.3, filter: { f: 500, q: 3 } });
     this.duck.frequency.cancelScheduledValues(t); this.duck.frequency.setValueAtTime(380, t); this.duck.frequency.exponentialRampToValueAtTime(20000, t + 1.3);
   }
-  death() { if (!this.ready) return; this._tone('sawtooth', note(-12), note(-24), 2.4, 0.4, { wet: 1, filter: { f: 600, q: 2 } }); this._tone('sine', note(3), note(-9), 2.8, 0.2, { wet: 1 }); }
+  death() { if (!this.ready) return; if (this.useScore) { this.score.death(); return; } this._tone('sawtooth', note(-12), note(-24), 2.4, 0.4, { wet: 1, filter: { f: 600, q: 2 } }); this._tone('sine', note(3), note(-9), 2.8, 0.2, { wet: 1 }); }
   thunder(delay = 1) {
     if (!this.ready) return;
     this._burst('lowpass', 420, 60, 0.6, 3.4, 0.85, { delay, wet: 1, attack: 0.08 });
@@ -197,11 +215,13 @@ export class Audio {
   }
   tempo(on) {
     if (!this.ready) return;
+    if (this.score) { this.score.setTempo(on); if (on) this.accent('tempo'); }
     if (on) { for (let i = 0; i < 6; i++) this._tone('sine', note(SCALE[i * 2 % SCALE.length] + 12), note(SCALE[i * 2 % SCALE.length] + 12), 1.6, 0.12, { delay: i * 0.05, wet: 1 }); this._tone('sine', 60, 180, 0.6, 0.5, { wet: 0.4, attack: 0.3 }); }
     else this._tone('sine', 400, 60, 0.7, 0.3, { wet: 0.8 });
   }
   stinger(n = 0) {
     if (!this.ready) return;
+    if (this.useScore) { this.score.accent('bout'); return; }
     for (const [i, s] of [0, 7, 12, 19].entries()) this._tone('triangle', note(s + (n % 2 ? 3 : 0)), note(s + (n % 2 ? 3 : 0)), 1.8, 0.14, { delay: i * 0.09, wet: 1 });
   }
   // droid chatter: hello (curious), yelp (its own bolt is coming back), laugh (it got you), tap (the Maestro's baton)

@@ -57,7 +57,7 @@ export class Game {
   // ---------- flow
   start() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'starting'; this.hold = false;
+    this.clearField(); this.reset(); this.state = 'starting'; this.hold = false; app.audio.tempo(false); app.audio.muffle(false); app.audio.music('rest');
     let seen = false; try { seen = !!localStorage.getItem('riposte.tut'); } catch {}
     this.tut = seen ? 0 : 1; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false;
     app.hud.screen(null);
@@ -70,7 +70,7 @@ export class Game {
   home() {
     const { app } = this;
     this.clearField(); this.reset(); this.state = 'menu'; this.visitT = 5; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false; app.hud.el.banner.classList.remove('show');
-    app.audio.setPlaying(false); app.sword.overTarget = 0; app.sword.retract();
+    app.audio.setPlaying(false); app.audio.music('menu'); app.audio.muffle(false); app.audio.tempo(false); app.sword.overTarget = 0; app.sword.retract();
     app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'title';
   }
   beginBout(n) {
@@ -80,12 +80,14 @@ export class Game {
     const boss = this.cfg.boss;
     const name = boss ? `${TYPES[boss].name}${this.cfg.tier ? ' ' + ROMAN(this.cfg.tier + 1) : ''}` : null;
     app.hud.setBout(n); app.hud.banner(boss ? 'A master approaches' : 'En garde', boss ? name.toUpperCase() : `BOUT ${ROMAN(n)}`, this.cfg.sub, 2300);
-    app.audio.stinger(n); app.audio.setPlaying(true);
+    app.audio.music(boss ? 'boss' : 'bout'); app.audio.stinger(n); if (boss) app.audio.accent('boss'); app.audio.setPlaying(true);
     app.env.setMood(boss ? TYPES[boss].color : null);
   }
   endBout() {
     const { app } = this;
     if (this.tut) { this.tut = 0; this.hold = false; app.hud.hint(null); try { localStorage.setItem('riposte.tut', '1'); } catch {} }
+    const wasBoss = !!this.cfg.boss, ext = wasBoss ? 4.5 : 0;     // after a master falls, let the theme breathe
+    app.audio.music(wasBoss ? 'win' : 'rest'); app.audio.accent(wasBoss ? 'win' : 'clear');
     this.state = 'intermission'; this.boss = null; app.hud.boss(null); app.env.setMood(null); app.env.courtPulse(0, 0, 1.4);
     this.after(1.0, () => { app.sword.retract(); app.pose = 'rest'; app.audio.setPlaying(false); });
     this.after(1.3, () => {
@@ -93,8 +95,8 @@ export class Game {
       if (heal) { app.env.heart = false; this.integrity++; app.hud.setPips(this.integrity, true); app.sword.setIntegrity(this.integrity); }
       app.hud.banner('Bout cleared', 'TOUCHÉ', heal ? '+1 guard restored' : `${this.score.toLocaleString('en-US')} points`, 1500);
     });
-    this.after(3.1, () => { app.sword.ignite(); app.pose = 'play'; });
-    this.after(3.7, () => this.beginBout(this.bout + 1));
+    this.after(3.1 + ext, () => { app.sword.ignite(); app.pose = 'play'; });
+    this.after(3.7 + ext, () => this.beginBout(this.bout + 1));
   }
   die() {
     const { app } = this;
@@ -110,14 +112,14 @@ export class Game {
       if (newBest) { this.best = this.score; try { localStorage.setItem('riposte.best', this.best); } catch {} }
       let rank = RANKS[0][1]; for (const [s, r] of RANKS) if (this.score >= s) rank = r;
       this.result = { score: this.score, returned: this.returned, perfect: this.ripostes, streak: this.streak, bout: this.bout, rank, newBest, best: this.best };
-      app.hud.showHud(false); app.hud.boss(null); app.hud.showEnd(this.result); app.hud.setBest(this.best);
+      app.hud.showHud(false); app.hud.boss(null); app.hud.showEnd(this.result); app.hud.setBest(this.best); app.audio.music('dead');
     }, true);
   }
   togglePause() {
     const { app } = this;
     if (this.state !== 'play' && !this.paused) return;
-    if (!this.paused) { this.paused = true; app.sword.retract(); app.pose = 'rest'; app.hud.screen('paused'); app.audio.setPlaying(false); }
-    else { app.hud.screen(null); app.sword.ignite(); app.pose = 'play'; this.after(0.7, () => { this.paused = false; app.audio.setPlaying(true); }, true); }
+    if (!this.paused) { this.paused = true; app.sword.retract(); app.pose = 'rest'; app.hud.screen('paused'); app.audio.setPlaying(false); app.audio.muffle(true); }
+    else { app.hud.screen(null); app.sword.ignite(); app.pose = 'play'; app.audio.muffle(false); this.after(0.7, () => { this.paused = false; app.audio.setPlaying(true); }, true); }
   }
   shareText() {
     const r = this.result; if (!r) return '';
@@ -296,7 +298,7 @@ export class Game {
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, strong ? 0.7 : 0.3, 1.1);
     app.addTrauma(strong ? 0.28 : 0.12); app.kick(strong ? 1 : 0.4); sw.clash(strong ? 0.7 : 0.4);
     this.stopT = strong ? 0.07 : 0.03;
-    app.audio.deflect(strong, this.combo - 1, q.nx * 0.7);
+    app.audio.deflect(strong, this.combo - 1, q.nx * 0.7); if (strong) app.audio.accent('riposte');
     app.feedback(strong ? 'riposte' : 'return');
     if (this.chain === 2) app.hud.callout('DOUBLE'); else if (this.chain === 3) app.hud.callout('TRIPLE'); else if (this.chain >= 4) app.hud.callout('FLÈCHE', true);
     else if (strong) app.hud.callout('RIPOSTE', true);
@@ -335,7 +337,7 @@ export class Game {
     if (res === 'dead') return this.kill(e, b.strong);
     if (res === 'immune') { app.hud.floater(q.x, q.y, 'SHIELDED'); app.audio.shield(pan); return; }
     if (res === 'shield') { app.fx.sparks.burst(p, e.color, 60, 12, { life: 0.7, bright: 4 }); app.fx.debris.burst(p, 9, 8, 1.3); app.fx.rings.emit(p, e.color, { r0: 1, r1: 4, life: 0.5, bright: 3 }); app.audio.shield(pan); app.hud.floater(q.x, q.y, 'ARMOUR BROKEN'); }
-    else if (res === 'phase') { app.hud.callout(e.type === 'bastion' ? 'SHELL SHATTERED' : 'SECOND MOVEMENT', true); app.fx.debris.burst(p, 26, 12, 1.6); app.fx.rings.emit(p, e.color, { r0: 1, r1: 5, life: 0.7, bright: 2 }); app.audio.explode(false, pan); app.addTrauma(0.4); this.slowT = 0.5; this.slowScale = 0.3; }
+    else if (res === 'phase') { app.hud.callout(e.type === 'bastion' ? 'SHELL SHATTERED' : 'SECOND MOVEMENT', true); app.fx.debris.burst(p, 26, 12, 1.6); app.fx.rings.emit(p, e.color, { r0: 1, r1: 5, life: 0.7, bright: 2 }); app.audio.explode(false, pan); app.audio.accent('phase'); app.addTrauma(0.4); this.slowT = 0.5; this.slowScale = 0.3; }
     else { app.audio.explode(false, pan); app.fx.glows.emit(p, col, 0.7, 0.18, { bright: 1.2 }); if (e.boss) app.hud.floater(q.x, q.y, `−${dmg}`, b.strong); }
     if (e.boss) {
       app.hud.boss(null, clamp(e.hp / e.maxHp));
@@ -363,7 +365,7 @@ export class Game {
     app.env.ripple(p.x, p.z, big ? 2.4 : 1.2);
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, big ? 1.4 : 0.7, 0.8);
     app.addTrauma(big ? 0.9 : 0.3);
-    app.audio.explode(big, q.nx * 0.8); app.feedback(big ? 'boss' : 'kill');
+    app.audio.explode(big, q.nx * 0.8); app.feedback(big ? 'boss' : 'kill'); if (!big) app.audio.accent('kill');
     if (big) {
       for (let i = 1; i <= 5; i++) this.after(i * 0.16, () => { _v.copy(p).add(new THREE.Vector3(rand(-3, 3), rand(-2, 2), rand(-1, 1))); app.fx.sparks.burst(_v, e.color, 60, 14, { life: 0.8, bright: 5 }); app.fx.glows.emit(_v, WHITE, 4, 0.25, { bright: 5 }); app.env.flash(_v, e.color, 12, 0.4); app.audio.explode(i === 5, rand(-0.5, 0.5)); app.addTrauma(0.4); });
       app.env.courtPulse(0, 0, 2); app.hud.boss(null, 0);
@@ -438,7 +440,8 @@ export class Game {
     this.bolts.update(gdt, this);
     this.checkDeflect(rdt);
     if (app.autoplay) this.bot();
-    app.audio.setIntensity(clamp(this.combo / 22 + (this.bout - 1) * 0.1 + (this.tempoLive > 0 ? 0.3 : 0) + (this.cfg.boss ? 0.25 : 0)));
+    // how hard it is right now: bolts in the air, orbs alive, your streak, your last guard
+    app.audio.setIntensity(this.state !== 'play' ? 0 : clamp(this.bolts.incoming.length * 0.17 + this.enemies.length * 0.07 + this.combo / 40 + (this.integrity === 1 ? 0.22 : 0) + (this.tempoLive > 0 ? 0.15 : 0)));
   }
 
   // debug/attract bot. true = perfect; 'human' = reacts late, aims roughly, then holds; 'swing' = slashes through with sloppy timing

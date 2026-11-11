@@ -8,7 +8,7 @@ export const BLADES = {
   ember: { rgb: '255,140,50', lore: 'The relentless' },
   blanc: { rgb: '190,220,255', lore: 'The clear' },
 };
-const SCREENS = ['intro', 'select', 'controls', 'paused', 'end'];
+const SCREENS = ['intro', 'select', 'controls', 'credits', 'paused', 'end'];
 
 export class Hud {
   constructor() {

@@ -261,3 +261,7 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 #bossbar .track { position: relative; } #bossbar .track::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.14); }
 #bossFill { position: relative; }
 #intro.out .menu, #intro.out .tag, #intro.out .over { opacity: 0 !important; transition: opacity .5s; animation: none; }
+
+#credits { justify-content: center; background: radial-gradient(ellipse at center, rgba(3,6,11,.3), rgba(3,6,11,.86)); pointer-events: auto; }
+#credits a { color: rgb(var(--blade)); text-decoration: none; border-bottom: 1px solid rgba(var(--blade), .4); }
+#credits a:hover { border-bottom-color: rgb(var(--blade)); }

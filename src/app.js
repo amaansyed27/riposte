@@ -163,16 +163,16 @@ function toSelect() {
   app.audio.unlock();
   if (coarse && !motion.on) enableMotion();       // tilt effects on phones; silently skipped if refused
   // the first click IS the ignition: the blade lights in your hand on the opening page, then the page turns
-  leaving = true; app.pose = 'title'; app.sword.ignite(); $('intro').classList.add('out');
+  leaving = true; app.pose = 'title'; app.sword.ignite(); $('intro').classList.add('out'); app.audio.music('select'); app.audio.accent('ignite');
   app.later(1.15, () => { leaving = false; $('intro').classList.remove('out'); if (app.hud.current === 'intro') app.hud.screen('select'); });
 }
-function toIntro() { recolor++; app.audio.ui(); app.sword.retract(); app.hud.screen('intro'); app.pose = 'title'; }
+function toIntro() { recolor++; app.audio.ui(); app.audio.music('menu'); app.sword.retract(); app.hud.screen('intro'); app.pose = 'title'; }
 // "the obvious next thing": used by Enter, gamepad A and the paired phone
 function confirm() {
   app.audio.unlock();
   const c = app.hud.current, g = app.game;
   if (c === 'intro') toSelect(); else if (c === 'select') g.start(); else if (c === 'end') g.start(); else if (c === 'paused') g.togglePause();
-  else if (c === 'controls') app.hud.screen('intro');
+  else if (c === 'controls' || c === 'credits') app.hud.screen('intro');
   else if (g.state === 'play') app.sword.toggle();
 }
 $('btnPlay').addEventListener('click', toSelect);
@@ -180,6 +180,8 @@ $('btnBack').addEventListener('click', toIntro);
 $('btnEnter').addEventListener('click', () => { app.audio.unlock(); app.game.start(); });
 $('btnControls').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); });
 $('btnCtlClose').addEventListener('click', () => { app.audio.ui(); app.hud.screen('intro'); });
+$('btnCredits').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('credits'); });
+$('btnCreditsClose').addEventListener('click', () => { app.audio.ui(); app.hud.screen('intro'); });
 $('btnPhone').addEventListener('click', async () => {
   $('pairBox').classList.remove('hidden');
   try { $('pairUrl').textContent = await remote.start($('qr')); } catch (e) { $('pairStatus').textContent = 'Could not start pairing: ' + (e.message || e); }

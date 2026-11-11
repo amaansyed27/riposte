@@ -63,3 +63,11 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Two bolts from different orbs never arrive within 0.5 s of each other on opposite sides. First run: the first bolt hangs short of you until your blade is across it.
 - Input bug: pointermove was dropped when getCoalescedEvents() returned an empty list.
 - Test players: R.autoplay(true | 'human' | 'swing'). Phone roll sign and DualSense roll are untested on hardware.
+
+## Score (adaptive music)
+- Beds in `public/audio` are edits of three pieces by Luis_Humanoide from Pixabay (Pixabay Content License): calm + theme from "Secrets of the Jedi", battle from "Star Wars Style Battle Music", boss from "Temple of the Dark Side". Chosen because they are original "inspired by" pieces, not covers of film themes. Cut with ffmpeg, loudness-normalised to -17 LUFS, 112 kbps.
+- `src/audio/score.js`: game state picks the bed (menu, select, rest, bout, boss, win, dead) with crossfades; each bed is split live into low/mid/high bands driven by a smoothed intensity (bolts in flight, orbs alive, streak, last guard). Loops crossfade into themselves over 2.6 s, so no sample-exact loop points are needed.
+- Our own synthesized accents (timpani, low brass, cymbal swells, a four-note horn call and its resolved answer) are tied to actions, not to a beat: the tracks have no reliably detectable tempo, so a metric layer would have clashed.
+- Tempo slows the tape to 0.84 and closes a filter; death winds it down to half speed; pause muffles; taking a hit ducks the music.
+- If the beds fail to load, the old synthesized pad and pulse stand in.
+- Nobody has listened to any of this yet. Levels and the taste of the accents are unverified.
