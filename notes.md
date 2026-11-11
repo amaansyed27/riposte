@@ -86,3 +86,10 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Loader frame waits race a timeout, so a page opened in a background tab still finishes loading.
 - WebGL context loss shows a reload message (the run is saved).
 - Checked: warm reload reaches the menu with Continue and music running; reload mid-run resumes bout, score and guard and switches the music to the battle bed.
+
+## Menu UX and rolling credits
+- Cursor: the canvas hides it for play; `body.menu` (set on every screen change) brings back a themed blade cursor on menus.
+- `src/ui/nav.js`: one selected item per screen shared by mouse, keyboard and gamepad. Arrows/WASD or d-pad/stick move, Enter/Space/A confirm, Esc/Backspace/B go back; left/right nudge a selected slider. Selected items show a description line; a footer shows the bindings and switches glyphs when a pad is used.
+- Settings (was Controllers) gained Music and Effects volume sliders (`riposte.vol.*`). The window losing focus pauses a bout.
+- Credits are a roll over the court (`#roll`), scrolled in the frame loop at one screen height per 13 s, to the heroic theme (`credits` state). Space/click-button pauses (and muffles the music), holding ↓ or the pointer runs 5x, Esc/B/Back leaves, and it returns to the menu at the end. The camera lifts toward the eclipse while it plays.
+- Lesson: a broad "replace everything between A and B" patch deleted the fullscreen and sound wake-up block that had been inserted between those anchors. It was restored; check for collateral when splicing.

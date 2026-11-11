@@ -28,12 +28,13 @@
         <p class="tag">You cannot strike. Only return.</p>
       </div>
       <nav class="menu">
-        <button id="btnContinue" class="btn primary big hidden">Continue</button>
-        <button id="btnPlay" class="btn primary big">Play</button>
-        <button id="btnSaber" class="btn desk">Use your phone as the saber</button>
-        <button id="btnControls" class="btn">Controllers</button>
-        <button id="btnFsMenu" class="btn small">Fullscreen</button>
-        <button id="btnCredits" class="btn small">Credits</button>
+        <button id="btnContinue" class="btn primary big hidden" data-desc="Pick up your run where you left it.">Continue</button>
+        <button id="btnPlay" class="btn primary big" data-desc="Choose a blade and step onto the court.">Play</button>
+        <button id="btnSaber" class="btn desk" data-desc="Play on this screen and swing your phone. Pairs with a QR code.">Use your phone as the saber</button>
+        <button id="btnControls" class="btn" data-desc="Gamepad, phone, tilt, fullscreen and volume.">Settings</button>
+        <button id="btnFsMenu" class="btn small" data-desc="Fill the whole screen. F toggles it at any time.">Fullscreen</button>
+        <button id="btnCredits" class="btn small" data-desc="Who and what made this.">Credits</button>
+        <p id="menuDesc" class="menu-desc"></p>
         <p id="introBest" class="best-line"></p>
       </nav>
       <p class="legal">© 2026 Amaan Syed · Dawnlight Labs · Built with Claude</p>
@@ -58,7 +59,7 @@
     <!-- controllers -->
     <section id="controls" class="screen hidden">
       <div class="card wide">
-        <div class="card-k">Controllers</div>
+        <div class="card-k">Settings</div>
         <div class="ctl">
           <div class="ctl-row">
             <div><b>Mouse or touch</b><span>Always on. The blade follows your pointer or finger.</span></div>
@@ -77,6 +78,8 @@
             <div><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div>
             <button id="btnGyro" class="btn small">Enable</button>
           </div>
+          <div class="ctl-row"><div><b>Music</b><span>The score.</span></div><input id="volMusic" type="range" min="0" max="100" value="80" aria-label="Music volume"></div>
+          <div class="ctl-row"><div><b>Effects</b><span>Blade, bolts, impacts, rain.</span></div><input id="volSfx" type="range" min="0" max="100" value="100" aria-label="Effects volume"></div>
           <div class="ctl-row" id="fsRow">
             <div><b>Fullscreen</b><span>Fill the whole screen. You can also press F at any time.</span></div>
             <button id="btnFsCtl" class="btn small">Enter</button>
@@ -90,22 +93,48 @@
       </div>
     </section>
 
-    <!-- credits -->
+    <!-- credits: a roll over the court -->
     <section id="credits" class="screen hidden">
-      <div class="card wide">
-        <div class="card-k">Credits</div>
-        <div class="ctl">
-          <div class="ctl-row"><div><b>Score</b><span>Built from three orchestral pieces by <a href="https://pixabay.com/users/luis_humanoide-12661853/" target="_blank" rel="noopener">Luis_Humanoide</a>, used under the Pixabay Content License and edited into loops:<br>
-            <a href="https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/" target="_blank" rel="noopener">Secrets of the Jedi</a> (the breath between bouts, and its swell when a master falls) ·
-            <a href="https://pixabay.com/music/main-title-the-path-of-the-force-inspired-by-star-wars-405335/" target="_blank" rel="noopener">The Path of the Force</a> (the menu theme) ·
-            <a href="https://pixabay.com/music/main-title-star-wars-style-battle-music-148641/" target="_blank" rel="noopener">Star Wars Style Battle Music</a> (bouts) ·
-            <a href="https://pixabay.com/music/main-title-temple-of-the-dark-side-cinematic-dark-choral-music-219925/" target="_blank" rel="noopener">Temple of the Dark Side</a> (masters).</span></div></div>
-          <div class="ctl-row"><div><b>Adaptive mix</b><span>The beds are split live into low, mid and high layers that follow the fight: bolts in the air, orbs alive, your streak, your last guard. Timpani, low brass, cymbal swells and the four-note horn call are synthesized here and land on what you do.</span></div></div>
-          <div class="ctl-row"><div><b>Sound</b><span>Every effect — the hum, ignition, bolts, impacts, rain, thunder, the orbs’ chatter — is synthesized in your browser. No samples.</span></div></div>
-          <div class="ctl-row"><div><b>Built with</b><span>three.js, Vite, PeerJS and qrcode. Not affiliated with or endorsed by any film or game franchise.</span></div></div>
-        </div>
-        <div class="actions"><button id="btnCreditsClose" class="btn primary">Done</button></div>
-      </div>
+      <div class="roll-mask"><div id="roll" class="roll">
+        <div class="r-title">RIPOSTE</div>
+        <p class="r-line">You cannot strike. Only return.</p>
+        <div class="r-gap"></div>
+        <h3>A game by</h3><p class="r-big">Amaan Syed</p>
+        <h3>Studio</h3><p class="r-big">Dawnlight Labs</p>
+        <div class="r-gap"></div>
+        <h3>Direction, design notes and playtesting</h3><p>Amaan Syed</p>
+        <h3>Programming, shaders, sound design and score direction</h3><p>Claude · Fable 5.2</p>
+        <h3>Blind critics</h3><p>Three independent Claude sessions who were told nothing and held nothing back</p>
+        <div class="r-gap"></div>
+        <h2>The Court</h2>
+        <div class="r-cast"><span>The Remote</span><i>as itself</i><span>The Binary</span><i>as themselves</i><span>The Lancer</span><i>aims first</i><span>The Bulwark</span><i>needs two</i><span>The Maestro</span><i>conducting</i><span>The Hydra</span><i>and its leashes</i><span>The Bastion</span><i>behind its shell</i><span>The Visitor</span><i>just looking</i><span>The Moths</span><i>drawn to the blade</i></div>
+        <div class="r-gap"></div>
+        <h2>Music</h2>
+        <h3>Composed by</h3><p class="r-big">Luis_Humanoide</p>
+        <p><a href="https://pixabay.com/music/main-title-the-path-of-the-force-inspired-by-star-wars-405335/" target="_blank" rel="noopener">The Path of the Force</a><em>the menu</em></p>
+        <p><a href="https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/" target="_blank" rel="noopener">Secrets of the Jedi</a><em>between bouts · when a master falls · these credits</em></p>
+        <p><a href="https://pixabay.com/music/main-title-star-wars-style-battle-music-148641/" target="_blank" rel="noopener">Star Wars Style Battle Music</a><em>bouts</em></p>
+        <p><a href="https://pixabay.com/music/main-title-temple-of-the-dark-side-cinematic-dark-choral-music-219925/" target="_blank" rel="noopener">Temple of the Dark Side</a><em>masters</em></p>
+        <p class="r-small">Used under the Pixabay Content License and edited into loops.</p>
+        <h3>Adaptive mix</h3><p class="r-small">Each piece is split live into low, mid and high layers that follow the fight: bolts in the air, orbs alive, your streak, your last guard.</p>
+        <h3>Timpani, low brass, cymbals and the four-note horn call</h3><p>Synthesized in your browser, on your cue</p>
+        <div class="r-gap"></div>
+        <h2>Sound</h2>
+        <p class="r-small">The hum, the ignition, every bolt, every impact, the rain, the thunder and the orbs’ chatter are synthesized live. There are no samples.</p>
+        <div class="r-gap"></div>
+        <h2>Made with</h2>
+        <div class="r-cast"><span>three.js</span><i>rendering</i><span>WebGL 2</span><i>every pixel</i><span>Web Audio</span><i>every sound</i><span>Vite</span><i>build</i><span>PeerJS</span><i>phone as saber</i><span>qrcode</span><i>pairing</i><span>Cinzel</span><i>engraved capitals</i><span>Azonix</span><i>the Dawnlight wordmark</i></div>
+        <div class="r-gap"></div>
+        <h2>Special thanks</h2>
+        <p>Everyone who ever sent it back</p>
+        <p class="r-small">No orbs were harmed in the making of this game. Several were returned to sender.</p>
+        <div class="r-gap"></div>
+        <p class="r-small">RIPOSTE is an independent work. It is not affiliated with or endorsed by any film or game franchise, or by Anthropic.</p>
+        <div class="r-gap"></div>
+        <div class="r-title small">Thank you for playing</div>
+        <p class="r-line">En garde.</p>
+      </div></div>
+      <div class="roll-ui"><button id="btnRollPause" class="btn small primary">Pause</button><button id="btnCreditsClose" class="btn small">Back</button></div>
     </section>
 
     <!-- hud -->
@@ -151,6 +180,7 @@
 
     <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="lore">Blade retracted. The court waits.</p><div class="actions"><button id="resume" class="btn primary">Resume</button><button id="homePause" class="btn">Home</button></div></div></section>
 
+    <div id="navHint" class="hidden desk"></div>
     <div id="soundHint" class="hidden"><span class="desk">Click anywhere for sound</span><span class="touch">Tap anywhere for sound</span></div>
     <div id="corner">
       <button id="btnSound" class="icon" aria-label="Toggle sound" title="Sound (M)">

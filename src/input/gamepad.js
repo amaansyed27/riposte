@@ -3,8 +3,8 @@
 import { clamp } from '../core/util.js';
 
 export class Gamepads {
-  constructor(app, { onConfirm, onPause, onStatus }) {
-    this.app = app; this.onConfirm = onConfirm; this.onPause = onPause; this.onStatus = onStatus;
+  constructor(app, { onConfirm, onPause, onStatus, onNav, onBack, onHold }) {
+    this.app = app; this.onConfirm = onConfirm; this.onPause = onPause; this.onStatus = onStatus; this.onNav = onNav || (() => {}); this.onBack = onBack || (() => {}); this.onHold = onHold || (() => {}); this.navT = 0;
     this.prev = []; this.active = false; this.name = '';
     this.gyro = null; this.gx = 0; this.gy = 0;
     addEventListener('gamepadconnected', (e) => { this.name = e.gamepad.id.replace(/\s*\(.*\)/, ''); onStatus(this.name || 'Connected', true); });
@@ -21,6 +21,8 @@ export class Gamepads {
       const m = Math.hypot(x, y);
       // only a deliberate push takes the blade; letting go hands it back to the mouse
       this.active = m > 0.35 || (this.active && m > 0.15);
+      const inMenu = !!this.app.hud.current;
+      if (inMenu) this.active = false;
       if (this.active && !this.gyro) {
         const k = m > 0.1 ? Math.min(1, (m - 0.1) / 0.85) / m : 0;
         const tx = x * k * 0.92, ty = -y * k * 0.8, cur = this.app.input.ndc;
@@ -31,6 +33,17 @@ export class Gamepads {
       if (b.some(Boolean)) { if (!this.name) { this.name = p.id.replace(/\s*\(.*\)/, ''); this.onStatus(this.name, true); } }
       if ((b[0] && !this.prev[0]) || (b[7] && !this.prev[7])) this.onConfirm();
       if (b[9] && !this.prev[9]) this.onPause();
+      if (b[1] && !this.prev[1]) this.onBack();
+      if (inMenu) {
+        // d-pad steps once per press; a held stick repeats
+        const ly = ax[1] || 0, lx = ax[0] || 0; let d = 0, sd = 0;
+        if (b[12] && !this.prev[12]) d = -1; else if (b[13] && !this.prev[13]) d = 1; else if (b[14] && !this.prev[14]) sd = -1; else if (b[15] && !this.prev[15]) sd = 1;
+        this.navT -= dt;
+        if (!d && !sd && this.navT <= 0) { if (Math.abs(ly) > 0.6) { d = Math.sign(ly); this.navT = 0.24; } else if (Math.abs(lx) > 0.6) { sd = Math.sign(lx); this.navT = 0.24; } }
+        if (Math.abs(ly) < 0.3 && Math.abs(lx) < 0.3) this.navT = 0;
+        if (d) this.onNav(d, false); if (sd) this.onNav(sd, true);
+        this.onHold(!!b[13] || ly > 0.6);
+      }
       this.prev = b;
     }
     if (this.gyro) {

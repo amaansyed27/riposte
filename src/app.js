@@ -13,6 +13,7 @@ import { Audio } from './audio/audio.js';
 import { Hud } from './ui/hud.js';
 import { Gamepads } from './input/gamepad.js';
 import { Remote } from './input/remote.js';
+import { Nav } from './ui/nav.js';
 import { clamp, damp, lerp, noise1, isTouch } from './core/util.js';
 
 const canvas = document.getElementById('gl');
@@ -88,7 +89,8 @@ app.later = (sec, fn) => laters.push({ t: sec, fn });
 // ---------- controllers
 const $ = (id) => document.getElementById(id);
 const pads = new Gamepads(app, {
-  onConfirm: () => confirm(), onPause: () => app.game.togglePause(),
+  onConfirm: () => { nav.setPad(true); confirm(); }, onPause: () => app.game.togglePause(),
+  onNav: (d, side) => { nav.setPad(true); if (side) nav.side(d); else nav.move(d); }, onBack: () => { nav.setPad(true); back(); }, onHold: (on) => { roll.fast = on; },
   onStatus: (t, ok) => { const el = $('padStatus'); el.textContent = t; el.classList.toggle('ok', !!ok); },
 });
 const remote = new Remote(app, {
@@ -173,11 +175,30 @@ function toIntro() { recolor++; app.audio.ui(); app.audio.music('menu'); app.swo
 // "the obvious next thing": used by Enter, gamepad A and the paired phone
 function confirm() {
   app.audio.unlock();
-  const c = app.hud.current, g = app.game;
-  if (c === 'intro') toSelect(!!g.saved()); else if (c === 'select') g.start(); else if (c === 'end') g.start(); else if (c === 'paused') g.togglePause();
-  else if (c === 'controls' || c === 'credits') app.hud.screen('intro');
-  else if (g.state === 'play') app.sword.toggle();
+  if (app.hud.current === 'credits') { if (nav.sel && nav.sel.id === 'btnCreditsClose') closeCredits(); else toggleRoll(); return; }
+  if (app.hud.current) { if (!nav.activate()) nav.sync(); return; }
+  if (app.game.state === 'play') app.sword.toggle();
 }
+// "take me back one step", wherever you are
+function back() {
+  const c = app.hud.current;
+  if (c === 'credits') closeCredits(); else if (c === 'controls' || c === 'select') toIntro();
+  else if (c === 'paused') app.game.togglePause(); else if (c === 'end') app.game.home();
+  else if (!c) app.game.togglePause();
+}
+// every screen change: cursor back, one item selected, the right hints
+const nav = new Nav(app);
+const _screen = app.hud.screen.bind(app.hud);
+app.hud.screen = (name) => { _screen(name); document.body.classList.toggle('menu', !!name); nav.sync(); };
+
+// ---------- rolling credits: scrolls over the court to the theme; pause, hold to hurry, back out any time
+const roll = { y: 0, paused: false, fast: false, el: $('roll') };
+function openCredits() { app.audio.unlock(); app.audio.ui(); roll.y = innerHeight * 0.92; roll.paused = false; roll.fast = false; $('credits').classList.remove('paused'); $('btnRollPause').textContent = 'Pause'; app.pose = 'away'; app.hud.screen('credits'); app.audio.music('credits'); roll.el.style.transform = 'translate3d(0,' + roll.y + 'px,0)'; }
+function closeCredits() { app.audio.ui(); app.audio.muffle(false); app.pose = 'title'; app.sword.snapPose(); app.hud.screen('intro'); app.audio.music('menu'); }
+function toggleRoll() { roll.paused = !roll.paused; $('credits').classList.toggle('paused', roll.paused); $('btnRollPause').textContent = roll.paused ? 'Resume' : 'Pause'; app.audio.muffle(roll.paused); }
+$('btnRollPause').addEventListener('click', toggleRoll);
+$('credits').addEventListener('pointerdown', (e) => { if (!e.target.closest('button, a')) roll.fast = true; });
+addEventListener('pointerup', () => { roll.fast = false; });
 $('btnPlay').addEventListener('click', () => toSelect(false));
 $('btnContinue').addEventListener('click', () => toSelect(true));
 // the menu offers Continue when a run is saved
@@ -191,8 +212,9 @@ $('btnBack').addEventListener('click', toIntro);
 $('btnEnter').addEventListener('click', () => { app.audio.unlock(); app.game.start(); });
 $('btnControls').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); });
 $('btnCtlClose').addEventListener('click', () => { app.audio.ui(); app.hud.screen('intro'); });
-$('btnCredits').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('credits'); });
-$('btnCreditsClose').addEventListener('click', () => { app.audio.ui(); app.hud.screen('intro'); });
+$('btnCredits').addEventListener('click', openCredits);
+$('btnCreditsClose').addEventListener('click', closeCredits);
+for (const [id, kind] of [['volMusic', 'music'], ['volSfx', 'sfx']]) { const el = $(id); el.value = Math.round(app.audio.vol[kind] * 100); el.addEventListener('input', () => { app.audio.unlock(); app.audio.setVol(kind, el.value / 100); if (kind === 'sfx') app.audio.tick(); }); }
 $('btnPhone').addEventListener('click', async () => {
   $('pairBox').classList.remove('hidden');
   try { $('pairUrl').textContent = await remote.start($('qr')); } catch (e) { $('pairStatus').textContent = 'Could not start pairing: ' + (e.message || e); }
@@ -229,15 +251,31 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 addEventListener('keydown', (e) => {
-  if (e.repeat) return;
-  if (e.code === 'Space') { e.preventDefault(); app.audio.unlock(); if (app.hud.current === 'select' || app.game.state === 'play') app.sword.toggle(); }
-  else if (e.code === 'Enter') confirm();
-  else if (e.code === 'KeyM') toggleSound();
-  else if (e.code === 'KeyF') toggleFs();
-  else if (e.code === 'KeyR') pads.recenter();
-  else if (e.code === 'Escape' || e.code === 'KeyP') { if (app.hud.current === 'controls' || app.hud.current === 'select') toIntro(); else app.game.togglePause(); }
+  const c = app.hud.current, k = e.code;
+  if (c === 'credits' && (k === 'ArrowDown' || k === 'KeyS')) { roll.fast = true; e.preventDefault(); return; }
+  if (e.repeat && !(c && /^Arrow/.test(k))) return;
+  if (document.getElementById('boot')) { if (k === 'KeyF') toggleFs(); return; }
+  nav.setPad(false);
+  if (c) {
+    // menus: arrows or WASD move, Enter or Space confirm, Esc goes back
+    if (k === 'ArrowUp' || k === 'KeyW') { e.preventDefault(); nav.move(-1); }
+    else if (k === 'ArrowDown' || k === 'KeyS') { e.preventDefault(); nav.move(1); }
+    else if (k === 'ArrowLeft' || k === 'KeyA') { e.preventDefault(); nav.side(-1); }
+    else if (k === 'ArrowRight' || k === 'KeyD') { e.preventDefault(); nav.side(1); }
+    else if (k === 'Enter' || k === 'Space') { e.preventDefault(); confirm(); }
+    else if (k === 'Escape' || k === 'Backspace') { e.preventDefault(); back(); }
+    else if (k === 'KeyM') toggleSound(); else if (k === 'KeyF') toggleFs();
+    return;
+  }
+  if (k === 'Space') { e.preventDefault(); app.audio.unlock(); if (app.game.state === 'play') app.sword.toggle(); }
+  else if (k === 'KeyM') toggleSound();
+  else if (k === 'KeyF') toggleFs();
+  else if (k === 'KeyR') pads.recenter();
+  else if (k === 'Escape' || k === 'KeyP') app.game.togglePause();
 });
-// ---------- fullscreen (opening gate, menu, controllers, corner icon, F)
+addEventListener('keyup', (e) => { if (e.code === 'ArrowDown' || e.code === 'KeyS') roll.fast = false; });
+addEventListener('blur', () => { roll.fast = false; if (app.game.state === 'play' && !app.game.paused) app.game.togglePause(); });
+// ---------- fullscreen (opening gate, menu, settings, corner icon, F)
 const fsRoot = document.documentElement;
 const canFs = !!(fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen);
 const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -365,7 +403,15 @@ function frame(rdt, draw = true) {
   pads.update(rdt);
   // phone tilt leans the view a little
   motion.x = damp(motion.x, motion.tx, 5, rdt); motion.y = damp(motion.y, motion.ty, 5, rdt);
-  camRig.rotation.set(0.105 + motion.y * 0.05, -motion.x * 0.09, -motion.x * 0.03);
+  // credits: the view lifts toward the eclipse while the roll climbs
+  const inCredits = app.hud.current === 'credits';
+  app.lift = damp(app.lift || 0, inCredits ? 1 : 0, 1.2, rdt);
+  if (inCredits) {
+    if (!roll.paused) roll.y -= rdt * (app.size.h / 13) * (roll.fast ? 5 : 1);
+    roll.el.style.transform = 'translate3d(0,' + roll.y.toFixed(1) + 'px,0)';
+    if (roll.y < -roll.el.offsetHeight) closeCredits();
+  }
+  camRig.rotation.set(0.105 + motion.y * 0.05 + app.lift * 0.14, -motion.x * 0.09, -motion.x * 0.03);
   poseTargets(rdt);
   app.sword.update(rdt, app.time);
   g.update(gdt, rdt);

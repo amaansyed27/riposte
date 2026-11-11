@@ -27,6 +27,7 @@ const STATES = {
   bout: { bed: 'battle', level: 0.95 },
   boss: { bed: 'boss', level: 1.0, floor: 0.4 },
   win: { bed: 'theme', level: 1.0, flat: true },
+  credits: { bed: 'theme', level: 0.95, flat: true },
   dead: { bed: 'calm', level: 0.32, flat: true },
   off: { bed: null, level: 0 },
 };

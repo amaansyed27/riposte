@@ -7,7 +7,7 @@ const ROOT = 146.83; // D3
 const note = (semi) => ROOT * Math.pow(2, semi / 12);
 
 export class Audio {
-  constructor() { this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
+  constructor() { this.vol = { music: 0.8, sfx: 1 }; try { for (const k of ['music', 'sfx']) { const v = localStorage.getItem('riposte.vol.' + k); if (v !== null && v !== '') this.vol[k] = +v; } } catch {} this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
 
   unlock() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
@@ -32,7 +32,7 @@ export class Audio {
     this._hum(); this._rain(); this._pad();
     // the adaptive orchestral score; until its beds have loaded (or if they fail) the synthesized pad stands in
     this.score = new Score(ctx, master, this.wet);
-    this.score.setState(this._musicState || 'menu');
+    this.score.setState(this._musicState || 'menu'); this._applyVol();
     this.score.load(import.meta.env.BASE_URL + 'audio/').then((ok) => { if (ok) { this.useScore = true; this.padGain.gain.setTargetAtTime(0, ctx.currentTime, 1.2); } });
     this.ready = true;
     this._sched = setInterval(() => this._music(), 40);
@@ -244,6 +244,15 @@ export class Audio {
     else if (kind === 'clawd') { this._chirp = 0; this.chirp('hello', 0); [0, 4, 7].forEach((sm, i) => this._tone('square', note(sm + 12), note(sm + 12), 0.09, 0.05, { delay: 0.75 + i * 0.09, wet: 0.3, filter: { f: 2400 } })); }
     else if (kind === 'engine') { this._burst('bandpass', 200, 2600, 2, 1.1, 0.22, { wet: 0.7, attack: 0.5 }); this._tone('sawtooth', note(-24), note(-24), 1.8, 0.14, { wet: 0.6, attack: 0.4, filter: { f: 500, q: 2 } }); }
     else if (kind === 'author') { for (let i = 0; i < 7; i++) this._tone('sine', note(24 + [0, 3, 7, 10, 12, 15, 19][i]), note(24 + [0, 3, 7, 10, 12, 15, 19][i]), 1.6, 0.035, { delay: 0.5 + i * 0.07, wet: 1, pan: (i % 2) * 0.8 - 0.4 }); this._tone('sawtooth', note(-12), note(-12), 2.6, 0.16, { wet: 0.8, attack: 0.5, filter: { f: 700, q: 1.5 } }); this._tone('sine', 70, 40, 0.8, 0.5, { delay: 0.45, wet: 0.4 }); }
+  }
+  // the faintest click when the selection moves
+  tick() { if (!this.ready || this.ctx.state !== 'running') return; this._tone('sine', 1500, 1200, 0.03, 0.05, { wet: 0.15 }); this._burst('highpass', 6000, 5000, 1, 0.012, 0.03, { wet: 0.05 }); }
+  // music and effects volume, 0..1, remembered
+  setVol(kind, v) { this.vol[kind] = Math.max(0, Math.min(1, v)); try { localStorage.setItem('riposte.vol.' + kind, String(this.vol[kind])); } catch {} this._applyVol(); }
+  _applyVol() {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    this.dry.gain.setTargetAtTime(this.vol.sfx, t, 0.05); this.wet.gain.setTargetAtTime(0.38 * this.vol.sfx, t, 0.05);
+    if (this.score) { this.score.bus.gain.setTargetAtTime(0.62 * this.vol.music / 0.8, t, 0.05); this.score.acc.gain.setTargetAtTime(0.9 * this.vol.music / 0.8, t, 0.05); }
   }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
   sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }
