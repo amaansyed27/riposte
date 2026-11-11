@@ -10,10 +10,6 @@ import { Audio } from './audio/audio.js';
 import { Hud } from './ui/hud.js';
 import { Gamepads } from './input/gamepad.js';
 import { Remote } from './input/remote.js';
-import '@fontsource/orbitron/500.css';
-import '@fontsource/orbitron/700.css';
-import '@fontsource/orbitron/900.css';
-import '@fontsource/archivo-black/400.css';
 import { clamp, damp, lerp, noise1, isTouch } from './core/util.js';
 
 const canvas = document.getElementById('gl');

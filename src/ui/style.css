@@ -176,3 +176,84 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 #btnAim { margin-top: -4px; }
 @media (pointer: coarse) { .btn.desk { display: none; } }
 @media (pointer: fine) { .btn.touch { display: none; } }
+
+/* =====================================================================================================
+   v3 identity. One typeface, light and wide. The mark is cut by a stroke of light; buttons sit on blades.
+   ===================================================================================================== */
+:root { --display: var(--font); }
+.saber, .clash { display: none; }
+
+/* ---------- wordmark */
+#wordmark { all: unset; display: block; position: relative; margin: 3.4vh auto 0; width: max-content; max-width: 96vw; font-family: var(--font); font-weight: 200;
+  font-size: clamp(40px, 11.6vw, 150px); letter-spacing: .34em; line-height: 1.05; padding-left: .34em; color: #f2f7ff; opacity: 1; transform: none; animation: none; filter: none; }
+#wordmark::after { display: none; }
+.wm { display: block; white-space: nowrap; }
+.wm-top, .wm-bot { text-shadow: 0 0 .22em rgba(var(--blade), .85), 0 0 .9em rgba(var(--blade), .45); opacity: 0; animation: wmFade 1.6s .25s ease-out forwards; }
+.wm-top { clip-path: polygon(-10% -30%, 110% -30%, 110% 24%, -10% 80%); animation: wmFade 1.6s .25s ease-out forwards, wmSlip .5s 1.75s cubic-bezier(.2,.9,.2,1) forwards; }
+.wm-bot { position: absolute; left: .34em; top: 0; clip-path: polygon(-10% 80%, 110% 24%, 110% 140%, -10% 140%); }
+@keyframes wmFade { from { opacity: 0; letter-spacing: .5em; } to { opacity: 1; letter-spacing: .34em; } }
+@keyframes wmSlip { to { transform: translate(.075em, -.06em); } }
+/* the cut: a hairline of light drawn corner to corner, swept left to right, then left as a faint seam */
+.wm-cut { position: absolute; left: -4%; right: -4%; top: 24%; height: 56%; pointer-events: none;
+  background: linear-gradient(to top right, transparent calc(50% - 1.2px), #fff calc(50% - .6px), #fff calc(50% + .6px), transparent calc(50% + 1.2px));
+  filter: drop-shadow(0 0 6px rgb(var(--blade))) drop-shadow(0 0 18px rgba(var(--blade), .9)); clip-path: inset(0 100% 0 0); animation: wmCut 1.5s 1.35s cubic-bezier(.3,.7,.2,1) forwards; }
+@keyframes wmCut { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 28% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: .5; } }
+/* the I is a blade: a hilt at the foot, the light climbs out of it */
+.bl { font-style: normal; position: relative; color: transparent; text-shadow: none; }
+.bl::before { content: ""; position: absolute; left: calc(50% - .17em - .028em); bottom: .17em; width: .056em; height: .70em; border-radius: .05em; background: #fff; transform-origin: 50% 100%; transform: scaleY(0);
+  box-shadow: 0 0 .08em .02em rgb(var(--blade)), 0 0 .3em .08em rgba(var(--blade), .8), 0 0 .9em .2em rgba(var(--blade), .4); animation: blIgnite .5s 2.15s cubic-bezier(.1,.8,.2,1) forwards, blHum 1.9s 2.7s ease-in-out infinite; }
+.bl::after { content: ""; position: absolute; left: calc(50% - .17em - .05em); bottom: .02em; width: .10em; height: .17em; border-radius: .015em; background: linear-gradient(180deg, #c9a45c 0 18%, #2b3038 18% 30%, #aeb6c0 30% 78%, #20242a 78%); box-shadow: 0 0 0 .5px rgba(0,0,0,.6); }
+@keyframes blIgnite { 0% { transform: scaleY(0); filter: brightness(2.4); } 75% { transform: scaleY(1.05); } 100% { transform: scaleY(1); filter: none; } }
+@keyframes blHum { 0%,100% { opacity: 1; } 47% { opacity: .92; } 50% { opacity: .78; } 53% { opacity: .97; } }
+/* mirror court: the mark lies in the water beneath itself */
+.wm-mirror { position: absolute; left: .34em; top: 100%; transform: scaleY(-1) translateY(.14em); transform-origin: 50% 0; opacity: 0; filter: blur(.012em);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.55), transparent 78%); mask-image: linear-gradient(to top, rgba(0,0,0,.55), transparent 78%);
+  text-shadow: 0 0 .3em rgba(var(--blade), .8); animation: wmMirror 2.4s 1.2s ease-out forwards, wmRipple 5s 3.6s ease-in-out infinite; }
+.wm-mirror .bl::before { animation: blIgnite .5s 2.15s cubic-bezier(.1,.8,.2,1) forwards; }
+@keyframes wmMirror { to { opacity: .42; } }
+@keyframes wmRipple { 0%,100% { transform: scaleY(-1) translateY(.14em) skewX(0deg); } 50% { transform: scaleY(-1.04) translateY(.14em) skewX(-1.2deg); } }
+#intro .tag { margin-top: calc(clamp(40px, 11.6vw, 150px) * .98); }
+#intro { padding-top: calc(9vh + var(--sat)); }
+
+/* ---------- type back to light and wide */
+#bannerMain { font-weight: 200; letter-spacing: .3em; margin-right: -.3em; }
+#callout { font-weight: 300; letter-spacing: .6em; margin-right: -.6em; }
+#bladeName { font-weight: 200; letter-spacing: .4em; margin-right: -.4em; }
+.card-rank { font-weight: 200; letter-spacing: .34em; margin-right: -.34em; font-size: 30px; }
+#bout, #bossName, #tempo span { font-weight: 500; }
+#mult { font-weight: 700; }
+#floaters span { font-weight: 500; }
+
+/* ---------- buttons: a line of text on a blade. Idle = sheathed hairline with a hilt; hover/focus = it ignites. */
+.btn, .btn.big, .btn.small { position: relative; background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  font-family: var(--font); font-weight: 500; font-size: 12px; letter-spacing: .36em; padding: 14px 4px 16px 26px; min-height: 44px; color: rgba(233,241,251,.72); text-transform: uppercase; cursor: pointer; pointer-events: auto; transition: color .2s, letter-spacing .25s; white-space: nowrap; }
+.btn:hover, .btn:focus-visible { background: none; transform: none; color: #fff; letter-spacing: .42em; }
+.btn:active { transform: translateY(1px); }
+.btn::before { content: ""; position: absolute; left: 0; bottom: 6px; width: 20px; height: 5px; border-radius: 1.5px; background: linear-gradient(90deg, #20242a, #aeb6c0 35%, #2b3038 55%, #c9a45c 70%, #3a4048); }
+.btn::after { content: ""; position: absolute; left: 21px; right: 0; bottom: 7.5px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.2); transform-origin: 0 50%; transition: background .15s, box-shadow .2s; }
+.btn:hover::after, .btn:focus-visible::after { background: #fff; box-shadow: 0 0 6px 1px rgb(var(--blade)), 0 0 18px 4px rgba(var(--blade), .7); animation: btnIgnite .28s cubic-bezier(.1,.8,.2,1); }
+@keyframes btnIgnite { from { transform: scaleX(0); filter: brightness(2); } 80% { transform: scaleX(1.03); } to { transform: scaleX(1); } }
+/* primary: its blade is already lit, and hums */
+.btn.primary, .btn.primary:hover { background: none; border: 0; box-shadow: none; color: #fff; }
+.btn.primary::after { background: #fff; box-shadow: 0 0 6px 1px rgb(var(--blade)), 0 0 20px 5px rgba(var(--blade), .75); animation: blHum 2.2s ease-in-out infinite; }
+.btn.primary:hover::after, .btn.primary:focus-visible::after { height: 3px; box-shadow: 0 0 8px 2px rgb(var(--blade)), 0 0 30px 9px rgba(var(--blade), .85); animation: btnIgnite .28s cubic-bezier(.1,.8,.2,1); }
+.btn.big { font-size: 15px; font-weight: 400; letter-spacing: .6em; padding: 16px 8px 20px 34px; }
+.btn.big:hover, .btn.big:focus-visible { letter-spacing: .68em; }
+.btn.big::before { width: 28px; height: 6px; bottom: 7px; } .btn.big::after { left: 29px; bottom: 9px; }
+.btn.small { font-size: 10px; letter-spacing: .26em; padding: 10px 2px 13px 18px; min-height: 38px; }
+.btn.small::before { width: 14px; height: 4px; bottom: 5px; } .btn.small::after { left: 15px; bottom: 6px; height: 1.5px; }
+.btn:focus-visible { outline: none; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.menu { gap: 6px; } .row { gap: 26px; } .actions { gap: 22px; margin-top: 20px; }
+.best-line { margin-top: 12px; }
+/* round controls stay quiet */
+.icon { background: none; border: 1px solid rgba(255,255,255,.14); }
+.icon:hover { border-color: rgba(var(--blade), .9); box-shadow: 0 0 14px rgba(var(--blade), .5); background: none; }
+/* swatches: each one is a small unlit hilt until chosen */
+#swatches button { border-radius: 10px; width: 38px; height: 46px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); }
+#swatches button::after { left: 50%; top: 16%; height: 68%; transform: none; opacity: .55; transition: opacity .2s, box-shadow .2s; }
+#swatches button:hover::after { opacity: .9; }
+#swatches button[aria-checked="true"] { transform: translateY(-4px); border-color: rgba(var(--c), .7); box-shadow: 0 8px 26px rgba(var(--c), .35); }
+#swatches button[aria-checked="true"]::after { opacity: 1; box-shadow: 0 0 8px 3px rgb(var(--c)), 0 0 22px 8px rgba(var(--c), .8); }
+@media (max-width: 620px) { .btn.big { letter-spacing: .44em; font-size: 14px; } .row { gap: 14px; } }
+@media (prefers-reduced-motion: reduce) { .wm-top, .wm-bot, .wm-cut, .wm-mirror, .bl::before { animation-duration: .01s !important; animation-delay: 0s !important; } }

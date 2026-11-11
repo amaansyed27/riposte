@@ -1,11 +1,10 @@
 // Phone-as-hilt, phone side (opened as ?pad=<id>). No game here: just a hilt that reports where it points.
-import '@fontsource/orbitron/700.css';
 
 const css = `
   body { background: radial-gradient(ellipse at 50% 30%, #0b1524, #03060b 70%); color: #e9f1fb; font-family: "Avenir Next","Segoe UI",system-ui,sans-serif; }
   #gl, #ui { display: none !important; }
   #pad { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: calc(28px + env(safe-area-inset-top)) 22px calc(26px + env(safe-area-inset-bottom)); text-align: center; touch-action: none; }
-  #pad h1 { font-family: Orbitron, sans-serif; font-weight: 700; letter-spacing: .3em; margin-right: -.3em; font-size: 22px; color: #ffd54a; }
+  #pad h1 { font-weight: 200; letter-spacing: .5em; margin-right: -.5em; font-size: 26px; color: #e9f1fb; text-shadow: 0 0 22px rgba(var(--c), .9); }
   #pad p { font-size: 13px; letter-spacing: .08em; color: rgba(214,228,245,.7); line-height: 1.6; max-width: 30ch; }
   #padState { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; margin-top: 10px; color: #7dffb0; min-height: 14px; }
   #hilt { position: relative; width: 74px; height: 46vh; border-radius: 20px; background: linear-gradient(90deg, #14181e, #8f98a3 28%, #2b3038 46%, #c5a15a 50%, #2b3038 54%, #a3acb6 76%, #12151a); box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 20px 60px rgba(0,0,0,.7); }
