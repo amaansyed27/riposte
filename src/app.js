@@ -233,10 +233,41 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); app.audio.unlock(); if (app.hud.current === 'select' || app.game.state === 'play') app.sword.toggle(); }
   else if (e.code === 'Enter') confirm();
   else if (e.code === 'KeyM') toggleSound();
+  else if (e.code === 'KeyF') toggleFs();
   else if (e.code === 'KeyR') pads.recenter();
   else if (e.code === 'Escape' || e.code === 'KeyP') { if (app.hud.current === 'controls' || app.hud.current === 'select') toIntro(); else app.game.togglePause(); }
 });
-function toggleSound() { const m = !app.audio.muted; app.audio.setMuted(m); app.hud.el.btnSound.classList.toggle('off', m); }
+// ---------- fullscreen (opening gate, menu, controllers, corner icon, F)
+const fsRoot = document.documentElement;
+const canFs = !!(fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen);
+const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+function toggleFs() {
+  try {
+    if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else { const p = (fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen).call(fsRoot, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); }
+  } catch {}
+}
+function syncFs() {
+  const on = isFs();
+  $('btnFs').classList.toggle('on', on); $('btnFsMenu').textContent = on ? 'Exit fullscreen' : 'Fullscreen'; $('btnFsCtl').textContent = on ? 'Exit' : 'Enter';
+  const b = $('bootFs'); if (b) b.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+}
+for (const id of ['btnFs', 'btnFsMenu', 'btnFsCtl', 'bootFs']) { const el = $(id); if (!el) continue; if (!canFs) el.classList.add('hidden'); else el.addEventListener('click', (e) => { e.stopPropagation(); toggleFs(); }); }
+if (!canFs) $('fsRow').classList.add('hidden');
+document.addEventListener('fullscreenchange', syncFs); document.addEventListener('webkitfullscreenchange', syncFs);
+
+// ---------- sound wake-up. Browsers keep audio silent until the page has been interacted with, so after a reload
+// (when the opening and its "click to begin" are skipped) the first click, tap or key anywhere starts it.
+const soundOk = () => !!(app.audio.ctx && app.audio.ctx.state === 'running');
+function checkSound() { $('soundHint').classList.toggle('hidden', booting || soundOk() || app.audio.muted); }
+function wake() { app.audio.unlock(); setTimeout(checkSound, 300); }
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, wake, { capture: true, passive: true });
+app.audio.onState = () => checkSound();
+document.addEventListener('visibilitychange', () => { if (!document.hidden && app.audio.ctx && app.audio.ctx.state === 'suspended') app.audio.ctx.resume().catch(() => {}); });
+try { if (localStorage.getItem('riposte.mute')) { app.audio.muted = true; app.hud.el.btnSound.classList.add('off'); } } catch {}
+canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); const fb = document.getElementById('fallback'); fb.textContent = 'The graphics context was lost. Reload the page to continue — your run is saved.'; fb.classList.remove('hidden'); });
+
+function toggleSound() { const m = !app.audio.muted; app.audio.setMuted(m); app.hud.el.btnSound.classList.toggle('off', m); checkSound(); }
 app.hud.el.btnSound.addEventListener('click', () => { app.audio.unlock(); toggleSound(); });
 app.hud.el.btnPause.addEventListener('click', () => app.game.togglePause());
 $('resume').addEventListener('click', () => app.game.togglePause());
@@ -399,7 +430,8 @@ if (params.has('autoplay')) app.autoplay = true;
 
 // ---------- boot: compile every shader and fetch every bed behind the opening sequence, reporting progress
 async function preload(report) {
-  const raf = () => new Promise((r) => requestAnimationFrame(r));
+  // a frame, or 80 ms if the tab is in the background and frames are paused: loading must never stall
+  const raf = () => new Promise((r) => { let done = false; const go = () => { if (!done) { done = true; r(); } }; requestAnimationFrame(go); setTimeout(go, 80); });
   const base = import.meta.env.BASE_URL;
   report(0.02, 0);
   try { await Promise.all([document.fonts.load('900 40px Cinzel'), document.fonts.load('40px Azonix')]); } catch {}
@@ -417,5 +449,9 @@ async function preload(report) {
   const beds = ['menu', 'calm', 'theme', 'battle', 'boss']; let n = 0;
   await Promise.all(beds.map((b) => fetch(base + 'audio/' + b + '.mp3').then((r) => r.arrayBuffer()).catch(() => {}).then(() => report(0.7 + 0.3 * (++n / beds.length), 4))));
 }
-app.onBootDone = () => { booting = false; last = performance.now(); app.refreshMenu(); app.hud.screen('intro'); app.audio.music('menu'); };
+app.onBootDone = () => {
+  booting = false; last = performance.now(); app.refreshMenu(); app.hud.screen('intro'); app.audio.music('menu');
+  // try to start sound straight away (allowed when the browser already trusts this page); otherwise the hint asks for a click
+  app.audio.unlock(); setTimeout(checkSound, 500);
+};
 runBoot(app, preload);

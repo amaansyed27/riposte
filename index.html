@@ -32,6 +32,7 @@
         <button id="btnPlay" class="btn primary big">Play</button>
         <button id="btnSaber" class="btn desk">Use your phone as the saber</button>
         <button id="btnControls" class="btn">Controllers</button>
+        <button id="btnFsMenu" class="btn small">Fullscreen</button>
         <button id="btnCredits" class="btn small">Credits</button>
         <p id="introBest" class="best-line"></p>
       </nav>
@@ -75,6 +76,10 @@
           <div class="ctl-row" id="gyroRow">
             <div><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div>
             <button id="btnGyro" class="btn small">Enable</button>
+          </div>
+          <div class="ctl-row" id="fsRow">
+            <div><b>Fullscreen</b><span>Fill the whole screen. You can also press F at any time.</span></div>
+            <button id="btnFsCtl" class="btn small">Enter</button>
           </div>
           <div class="ctl-row" id="motionRow">
             <div><b>Tilt to aim</b><span>Playing on this phone: tilt it to move the blade instead of dragging. You can also switch on the blade page.</span></div>
@@ -146,9 +151,13 @@
 
     <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="lore">Blade retracted. The court waits.</p><div class="actions"><button id="resume" class="btn primary">Resume</button><button id="homePause" class="btn">Home</button></div></div></section>
 
+    <div id="soundHint" class="hidden"><span class="desk">Click anywhere for sound</span><span class="touch">Tap anywhere for sound</span></div>
     <div id="corner">
       <button id="btnSound" class="icon" aria-label="Toggle sound" title="Sound (M)">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="mute" d="m16 9.5 5 5m0-5-5 5"/></svg>
+      </button>
+      <button id="btnFs" class="icon" aria-label="Toggle fullscreen" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
       </button>
       <button id="btnPause" class="icon hidden" aria-label="Pause" title="Pause (Esc)">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg>
@@ -210,14 +219,18 @@
     </div>
 
     <div id="cAuthor" class="bc hidden">
+      <div class="au-sun"></div>
       <span class="au-by">A game by</span>
-      <span class="au-name">AMAAN SYED</span>
-      <i class="au-glint"></i>
+      <div class="au-name" data-text="AMAAN SYED" aria-label="Amaan Syed"></div>
+      <div class="au-blade"><i></i></div>
+      <canvas class="au-sparks" width="900" height="360"></canvas>
+      <span class="au-sub">Dawnlight Labs · MMXXVI</span>
     </div>
 
     <div id="bootGate"><span class="desk">Click to begin</span><span class="touch">Tap to begin</span><small>Best with sound</small></div>
     <div id="bootLoader"><i class="hilt"></i><div class="track"><div id="bootBeam"></div></div><p><span id="bootLabel">Reading the sky</span><b><span id="bootPct">0</span>%</b></p></div>
     <button id="bootSkip" class="btn small hidden">Skip</button>
+    <button id="bootFs" class="btn small">Fullscreen</button>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>

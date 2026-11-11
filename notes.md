@@ -79,3 +79,10 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Saved run: `riposte.run` is written at the start of every bout from II on and cleared on death; the menu shows Continue. Best score, blade colour, aim mode and tutorial state were already persisted.
 - Menu: left-aligned list on landscape with the hilt on the right; its own theme (`menu.mp3`, "The Path of the Force").
 - CSS/WAAPI animations do not advance while the preview pane is in the background; captures were made by finishing animations by hand.
+
+## Fullscreen, sound after reload, edge cases
+- Fullscreen toggle: opening gate, menu item, Controllers row, corner icon, and F. Hidden where the browser has no Fullscreen API (iPhone Safari).
+- Sound after a reload: browsers keep audio silent until the page is interacted with, and a quick return skips the gate. Any first pointerdown/keydown/touchend now unlocks audio (capture listener on window); the game also tries to start it when boot finishes, and shows a "click anywhere for sound" pill if the context is still suspended. Mute is remembered (`riposte.mute`). The context is resumed when the tab becomes visible again.
+- Loader frame waits race a timeout, so a page opened in a background tab still finishes loading.
+- WebGL context loss shows a reload message (the run is saved).
+- Checked: warm reload reaches the menu with Continue and music running; reload mid-run resumes bout, score and guard and switches the music to the battle bed.

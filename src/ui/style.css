@@ -316,3 +316,33 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
   #intro .legal { position: absolute; left: max(40px, 6vw); bottom: calc(4vh + var(--sab)); }
 }
 @media (max-aspect-ratio: 1/1) { #intro .legal { margin-top: 8px; text-align: center; } }
+
+/* ---------- fullscreen + sound hint */
+.icon .fs-out { display: none; } .icon.on .fs-out { display: block; } .icon.on .fs-in { display: none; }
+#bootFs { position: absolute; right: max(18px, 3vw); top: calc(16px + var(--sat)); z-index: 2; }
+#soundHint { position: absolute; right: max(16px, 2.4vw); top: calc(64px + var(--sat)); font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--ink); padding: 8px 12px; border: 1px solid rgba(var(--blade), .5); border-radius: 999px; background: rgba(3,6,11,.55); animation: breathe 2.4s ease-in-out infinite; pointer-events: none; }
+/* ---------- the name: struck in letter by letter, a corona behind, a blade lit beneath */
+#cAuthor { gap: 0; }
+.au-sun { position: absolute; left: 50%; top: 50%; width: min(92vw, 900px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, rgba(2,4,9,1) 0 21%, rgba(210,255,244,.85) 21.4%, rgba(120,230,210,.42) 23%, rgba(60,150,140,.16) 31%, rgba(20,60,60,.05) 46%, transparent 62%); filter: blur(1px); }
+.au-by { position: relative; margin-bottom: clamp(14px, 2.4vh, 26px); }
+.au-name { position: relative; white-space: nowrap; font-family: Cinzel, "Trajan Pro", Georgia, serif; font-weight: 900; font-size: clamp(30px, 8.2vw, 110px); letter-spacing: .05em; line-height: 1; background: none; -webkit-text-stroke: 0; filter: drop-shadow(0 0 22px rgba(120,230,210,.35)) drop-shadow(0 6px 0 rgba(0,0,0,.55)); }
+.au-name span { display: inline-block; opacity: 0; color: transparent; -webkit-text-stroke: 1px rgba(190,255,240,.22);
+  background: linear-gradient(100deg, #12302f 0%, #1f5a55 24%, #6fd6c4 40%, #fff6cf 50%, #74d2c1 60%, #1f5a55 76%, #12302f 100%); background-size: 420% 100%; background-position: 120% 0; -webkit-background-clip: text; background-clip: text; }
+.au-name span.sp { width: .36em; }
+.au-blade { position: relative; width: min(74vw, 820px); height: 3px; margin-top: clamp(16px, 2.6vh, 30px); }
+.au-blade i { position: absolute; inset: 0; border-radius: 3px; background: #fff; transform: scaleX(0); box-shadow: 0 0 8px 2px #7fe6d2, 0 0 30px 8px rgba(110,230,205,.7), 0 0 90px 24px rgba(60,190,170,.3); }
+.au-blade::before { content: ""; position: absolute; left: 50%; top: -5px; width: 26px; height: 13px; margin-left: -13px; border-radius: 3px; background: linear-gradient(90deg, #20242a, #aeb6c0 30%, #c9a45c 50%, #aeb6c0 70%, #20242a); z-index: 1; }
+.au-sparks { position: absolute; left: 50%; top: 50%; width: min(90vw, 900px); height: auto; transform: translate(-50%, -34%); pointer-events: none; }
+.au-sub { position: relative; margin-top: clamp(16px, 2.6vh, 28px); font-size: clamp(9px, 1.1vw, 12px); letter-spacing: .5em; padding-left: .5em; text-transform: uppercase; color: rgba(223,233,247,.5); opacity: 0; }
+.au-glint { display: none; }
+
+/* menu: compact secondary items; on short landscape windows give the list room */
+#intro .menu .btn:not(.big) { min-height: 36px; padding-top: 9px; padding-bottom: 12px; }
+#intro .menu .btn.small { min-height: 30px; padding-top: 6px; padding-bottom: 10px; }
+@media (max-height: 720px) and (min-aspect-ratio: 1/1) {
+  .wm-mirror { display: none; }
+  #intro .tag { margin-top: 2.4vh; }
+  #intro { padding-top: calc(5vh + var(--sat)); }
+  #intro .menu { bottom: calc(8vh + var(--sab)); }
+}

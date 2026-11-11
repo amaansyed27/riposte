@@ -14,6 +14,7 @@ export class Audio {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ctx = (this.ctx = new AC());
+    ctx.onstatechange = () => { if (this.onState) this.onState(ctx.state); };
     const master = (this.master = ctx.createGain()); master.gain.value = this.muted ? 0 : 0.9;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
     this.duck = ctx.createBiquadFilter(); this.duck.type = 'lowpass'; this.duck.frequency.value = 20000;
@@ -38,7 +39,7 @@ export class Audio {
     this.nextT = ctx.currentTime + 0.1;
   }
 
-  setMuted(m) { this.muted = m; if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05); }
+  setMuted(m) { this.muted = m; try { localStorage.setItem('riposte.mute', m ? '1' : ''); } catch {} if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05); }
 
   // ---- helpers
   _noise(loop = true) { const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; s.loop = loop; s.start(0, Math.random() * 1.5); return s; }

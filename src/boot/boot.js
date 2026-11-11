@@ -56,17 +56,46 @@ function engine(root) {
   return () => { live = false; };
 }
 function author(root) {
-  root.querySelector('.au-by').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, fill: 'both' });
-  const n = root.querySelector('.au-name');
-  n.animate([{ opacity: 0, transform: 'scale(1.08)', filter: 'blur(6px) drop-shadow(0 0 0 rgba(120,230,210,0))' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0) drop-shadow(0 0 22px rgba(120,230,210,.4))' }], { duration: 1100, delay: 250, easing: OUT, fill: 'both' });
-  n.animate([{ backgroundPosition: '130% 0' }, { backgroundPosition: '-10% 0', offset: 0.7 }, { backgroundPosition: '46% 0' }], { duration: 2400, delay: 450, easing: 'ease-in-out', fill: 'both' });
-  root.querySelector('.au-glint').animate([{ opacity: 0, transform: 'translateX(-60%) scaleX(.2)' }, { opacity: 1, offset: 0.5 }, { opacity: 0, transform: 'translateX(60%) scaleX(1.4)' }], { duration: 1500, delay: 900, easing: 'ease-in-out', fill: 'both' });
+  const name = root.querySelector('.au-name'), text = name.dataset.text;
+  if (!name.children.length) for (const ch of text) { const sp = document.createElement('span'); if (ch === ' ') sp.className = 'sp'; else sp.textContent = ch; name.appendChild(sp); }
+  const letters = [...name.children].filter((x) => !x.classList.contains('sp'));
+  // a corona opens behind the name as it is struck
+  root.querySelector('.au-sun').animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(.55)' }, { opacity: 0.95, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 2600, easing: OUT, fill: 'both' });
+  root.querySelector('.au-by').animate([{ opacity: 0, letterSpacing: '1.2em' }, { opacity: 1, letterSpacing: '.6em' }], { duration: 900, easing: 'ease-out', fill: 'both' });
+  // each letter is hammered in: it drops, white-hot and oversized, and rings into place
+  letters.forEach((el, i) => {
+    el.animate([{ opacity: 0, transform: 'translateY(-.45em) scale(1.7)', filter: 'blur(9px) brightness(4)' }, { opacity: 1, transform: 'translateY(.04em) scale(.96)', filter: 'blur(0) brightness(2)', offset: 0.7 }, { opacity: 1, transform: 'none', filter: 'blur(0) brightness(1)' }], { duration: 460, delay: 300 + i * 95, easing: 'cubic-bezier(.3,.9,.3,1)', fill: 'both' });
+    // then a light crosses the metal, letter to letter, and settles on the highlight
+    el.animate([{ backgroundPosition: '120% 0' }, { backgroundPosition: '-15% 0', offset: 0.6 }, { backgroundPosition: '48% 0' }], { duration: 1500, delay: 1350 + i * 70, easing: 'ease-in-out', fill: 'both' });
+  });
+  const T = 300 + letters.length * 95 + 200;
+  // a blade ignites from the hilt outward under the name
+  root.querySelector('.au-blade i').animate([{ transform: 'scaleX(0)', filter: 'brightness(3)' }, { transform: 'scaleX(1.03)', filter: 'brightness(1.6)', offset: 0.75 }, { transform: 'scaleX(1)', filter: 'brightness(1)' }], { duration: 520, delay: T, easing: 'cubic-bezier(.1,.8,.2,1)', fill: 'both' });
+  root.querySelector('.au-sub').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: T + 450, easing: 'ease-out', fill: 'both' });
+  root.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }], { duration: 4600, easing: 'linear', fill: 'both' });
+  // sparks thrown off the blade as it lights
+  const cv = root.querySelector('.au-sparks'), g = cv.getContext('2d'), W = cv.width, H = cv.height, P = [];
+  let live = true, born = false; const t0 = performance.now();
+  const tick = () => {
+    if (!live) return; requestAnimationFrame(tick);
+    const t = performance.now() - t0;
+    if (!born && t > T) { born = true; for (let i = 0; i < 110; i++) { const side = Math.random() < 0.5 ? -1 : 1, u = Math.random(); P.push({ x: W / 2 + side * u * W * 0.4, y: H * 0.5, vx: side * (40 + Math.random() * 260), vy: -(60 + Math.random() * 260) * (Math.random() < 0.8 ? 1 : -0.5), life: 0.5 + Math.random() * 0.9, age: -u * 0.3 }); } }
+    g.clearRect(0, 0, W, H); g.lineCap = 'round';
+    for (const p of P) {
+      p.age += 1 / 60; if (p.age < 0 || p.age > p.life) continue;
+      p.vy += 520 / 60; p.x += p.vx / 60; p.y += p.vy / 60;
+      const k = 1 - p.age / p.life; g.strokeStyle = `rgba(${200 + 55 * k | 0},255,${225 + 30 * k | 0},${k})`; g.lineWidth = 1 + k * 1.6;
+      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.022, p.y - p.vy * 0.022); g.stroke();
+    }
+  };
+  tick();
+  return () => { live = false; };
 }
 const CARDS = [
   { id: 'cDawn', run: dawnlight, hold: 2900, sound: 'dawn' },
   { id: 'cClawd', run: clawd, hold: 3100, sound: 'clawd' },
   { id: 'cEngine', run: engine, hold: 2700, sound: 'engine' },
-  { id: 'cAuthor', run: author, hold: 3300, sound: 'author' },
+  { id: 'cAuthor', run: author, hold: 4100, sound: 'author' },
 ];
 
 // ---------- the boot itself. preload(onProgress) resolves when the game can run without hitching.
@@ -85,7 +114,7 @@ export async function runBoot(app, preload) {
   if (m === 'warm') { gate.classList.add('hidden'); return finish(); }
 
   // audio needs a gesture, and the sequence is better with sound: one click starts it
-  await new Promise((res) => { const go = () => { removeEventListener('pointerdown', go); removeEventListener('keydown', go); res(); }; addEventListener('pointerdown', go); addEventListener('keydown', go); });
+  await new Promise((res) => { const go = (e) => { if (e && e.target && e.target.closest && e.target.closest('#bootFs')) return; if (e && e.code === 'KeyF') return; removeEventListener('pointerdown', go); removeEventListener('keydown', go); res(); }; addEventListener('pointerdown', go); addEventListener('keydown', go); });
   app.audio.unlock();
   gate.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'both' });
   el.classList.add('playing');
