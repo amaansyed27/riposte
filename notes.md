@@ -46,3 +46,12 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 
 ## Debug harness (`window.__riposte`)
 `manual(true)`, `step(dt, n)`, `until(fn, max)`, `snap(name)`, `stepSnap(name, n)`, `ignite()`, `retract()`, `select()`, `start()`, `home()`, `autoplay(true)`, `pointer(nx, ny)`, `info()`.
+
+## After critic rounds 1 and 2 (reports in `.shots/critic_round*.md`, not committed)
+- Identity v3: one thin typeface. Wordmark is cut by a stroke of light, the I is a blade, the mark reflects in the water. Buttons are text on a blade that ignites on hover. The outlined-logo experiment was dropped at the owner's request.
+- Opening page shows the hilt in hand; the first click ignites it, then the page turns to blade select.
+- Hit test is judged at the reticle (tight radius). On touch the finger rides the blade exactly like the mouse does.
+- Orbs: tracking eye with lids, wings, tail, cannon; chirps; they glance at a comrade's explosion. Streak lights lanterns down the colonnade. Moths gather at a lit blade. A visitor drifts in on the menus. At one guard left the eclipse beats.
+- Phone: Aim touch/tilt toggle on the blade page. Desktop: "Use your phone as the saber" pairs a phone by QR.
+- Live: https://riposte-iota.vercel.app
+- Open: a third critic round has not been run; real phone, gamepad, DualSense and audio remain untested.
