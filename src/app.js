@@ -6,6 +6,9 @@ import { Post } from './gfx/post.js';
 import { Sparks, Glows, Rings, Debris } from './fx/particles.js';
 import { Sword, BLADE_LEN, COLORS } from './sword/sword.js';
 import { Game } from './game/game.js';
+import { Enemy, TYPES } from './game/enemies.js';
+import { runBoot } from './boot/boot.js';
+import { ROMAN } from './ui/hud.js';
 import { Audio } from './audio/audio.js';
 import { Hud } from './ui/hud.js';
 import { Gamepads } from './input/gamepad.js';
@@ -158,24 +161,32 @@ app.hud.setBest(app.game.best);
 
 // ---------- pages
 let leaving = false;
-function toSelect() {
+function toSelect(resume = false) {
   if (leaving) return;
   app.audio.unlock();
   if (coarse && !motion.on) enableMotion();       // tilt effects on phones; silently skipped if refused
   // the first click IS the ignition: the blade lights in your hand on the opening page, then the page turns
   leaving = true; app.pose = 'title'; app.sword.ignite(); $('intro').classList.add('out'); app.audio.music('select'); app.audio.accent('ignite');
-  app.later(1.15, () => { leaving = false; $('intro').classList.remove('out'); if (app.hud.current === 'intro') app.hud.screen('select'); });
+  app.later(1.15, () => { leaving = false; $('intro').classList.remove('out'); if (app.hud.current !== 'intro') return; if (resume === true && app.game.saved()) app.game.start(true); else app.hud.screen('select'); });
 }
 function toIntro() { recolor++; app.audio.ui(); app.audio.music('menu'); app.sword.retract(); app.hud.screen('intro'); app.pose = 'title'; }
 // "the obvious next thing": used by Enter, gamepad A and the paired phone
 function confirm() {
   app.audio.unlock();
   const c = app.hud.current, g = app.game;
-  if (c === 'intro') toSelect(); else if (c === 'select') g.start(); else if (c === 'end') g.start(); else if (c === 'paused') g.togglePause();
+  if (c === 'intro') toSelect(!!g.saved()); else if (c === 'select') g.start(); else if (c === 'end') g.start(); else if (c === 'paused') g.togglePause();
   else if (c === 'controls' || c === 'credits') app.hud.screen('intro');
   else if (g.state === 'play') app.sword.toggle();
 }
-$('btnPlay').addEventListener('click', toSelect);
+$('btnPlay').addEventListener('click', () => toSelect(false));
+$('btnContinue').addEventListener('click', () => toSelect(true));
+// the menu offers Continue when a run is saved
+app.refreshMenu = () => {
+  const sv = app.game.saved();
+  $('btnContinue').classList.toggle('hidden', !sv); if (sv) $('btnContinue').textContent = 'Continue · Bout ' + ROMAN(sv.bout);
+  $('btnPlay').textContent = sv ? 'New run' : 'Play'; $('btnPlay').classList.toggle('primary', !sv); $('btnPlay').classList.toggle('big', !sv);
+  app.hud.setBest(app.game.best);
+};
 $('btnBack').addEventListener('click', toIntro);
 $('btnEnter').addEventListener('click', () => { app.audio.unlock(); app.game.start(); });
 $('btnControls').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); });
@@ -267,7 +278,7 @@ function poseTargets(dt) {
   const sway = (o) => (noise1(t * 0.5 + o) - 0.5);
   if (app.pose === 'title') {
     if (portrait) { _r.set(-0.10, 0.16, -1.2); _d.set(0.24, 0.80, -0.55); }
-    else { _r.set(-0.20, -0.13, -0.62); _d.set(0.45, 0.50, -0.74); }
+    else { _r.set(0.24, -0.13, -0.62); _d.set(-0.45, 0.50, -0.74); }      // hilt at the right, menu at the left
     _d.normalize(); _r.x += sway(1) * 0.03; _r.y += sway(2) * 0.03;
     _d.x += sway(3) * 0.06 + app.input.ndc.x * 0.05; _d.y += sway(4) * 0.03 + app.input.ndc.y * 0.03;
   } else if (app.pose === 'away') {
@@ -300,6 +311,7 @@ function poseTargets(dt) {
 }
 
 // ---------- frame
+let booting = true;
 let exposure = 1.5, manual = false, last = performance.now(), fpsAcc = 0, fpsN = 0, lowT = 0;
 function frame(rdt, draw = true) {
   rdt = Math.min(rdt, 0.05);
@@ -345,6 +357,7 @@ function frame(rdt, draw = true) {
 function loop(now) {
   requestAnimationFrame(loop);
   const dt = (now - last) / 1000; last = now;
+  if (booting) return;                       // the opening sequence owns the main thread until everything is compiled
   if (manual) { app.post.render(); return; } // keep presenting the frozen frame so captures never stall
   frame(dt);
   // adaptive quality: if we can't hold ~45fps, shed pixels
@@ -383,3 +396,26 @@ window.__riposte = {
   info: () => ({ state: app.game.state, bout: app.game.bout, score: app.game.score, combo: app.game.combo, integrity: app.game.integrity, enemies: app.game.enemies.length, bolts: app.game.bolts.incoming.length, sword: app.sword.state, quality: app.quality, fps: 0 }),
 };
 if (params.has('autoplay')) app.autoplay = true;
+
+// ---------- boot: compile every shader and fetch every bed behind the opening sequence, reporting progress
+async function preload(report) {
+  const raf = () => new Promise((r) => requestAnimationFrame(r));
+  const base = import.meta.env.BASE_URL;
+  report(0.02, 0);
+  try { await Promise.all([document.fonts.load('900 40px Cinzel'), document.fonts.load('40px Azonix')]); } catch {}
+  report(0.07, 1); await raf();
+  // one of every sentinel, parked out of sight, so each material variant exists before compiling
+  const temp = []; const types = Object.keys(TYPES);
+  for (let i = 0; i < types.length; i++) { const e = new Enemy(types[i], app); e.group.position.set(i * 4 - 12, 8, -30); temp.push(e); report(0.07 + 0.15 * ((i + 1) / types.length), 2); await raf(); }
+  report(0.24, 3);
+  try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn('compileAsync', e); }
+  report(0.56, 3); await raf();
+  // a few real frames warm the reflection pass, the bloom chain and the lens pass
+  for (let k = 0; k < 4; k++) { frame(1 / 60); report(0.56 + 0.035 * (k + 1), 3); await raf(); }
+  for (const e of temp) e.dispose();
+  report(0.7, 4);
+  const beds = ['menu', 'calm', 'theme', 'battle', 'boss']; let n = 0;
+  await Promise.all(beds.map((b) => fetch(base + 'audio/' + b + '.mp3').then((r) => r.arrayBuffer()).catch(() => {}).then(() => report(0.7 + 0.3 * (++n / beds.length), 4))));
+}
+app.onBootDone = () => { booting = false; last = performance.now(); app.refreshMenu(); app.hud.screen('intro'); app.audio.music('menu'); };
+runBoot(app, preload);

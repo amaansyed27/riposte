@@ -42,9 +42,10 @@ Vite, three.js (WebGL2), WebAudio, PeerJS for the phone link. See [notes.md](not
 
 ## Credits
 
-**Score.** Built from three orchestral pieces by [Luis_Humanoide](https://pixabay.com/users/luis_humanoide-12661853/), used under the [Pixabay Content License](https://pixabay.com/service/license-summary/) and edited into loops (`public/audio`):
+**Score.** Built from four orchestral pieces by [Luis_Humanoide](https://pixabay.com/users/luis_humanoide-12661853/), used under the [Pixabay Content License](https://pixabay.com/service/license-summary/) and edited into loops (`public/audio`):
 
-- [Secrets of the Jedi](https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/) — `calm.mp3` (menus, between bouts) and `theme.mp3` (a master falls)
+- [The Path of the Force](https://pixabay.com/music/main-title-the-path-of-the-force-inspired-by-star-wars-405335/) — `menu.mp3` (opening page and blade select)
+- [Secrets of the Jedi](https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/) — `calm.mp3` (between bouts) and `theme.mp3` (a master falls)
 - [Star Wars Style Battle Music](https://pixabay.com/music/main-title-star-wars-style-battle-music-148641/) — `battle.mp3`
 - [Temple of the Dark Side](https://pixabay.com/music/main-title-temple-of-the-dark-side-cinematic-dark-choral-music-219925/) — `boss.mp3`
 
@@ -53,3 +54,5 @@ These audio files are not covered by this repository's code licence; they remain
 **Adaptive mix and all sound effects** are synthesized in the browser with WebAudio (`src/audio`). The game state picks the bed; a smoothed intensity value brings each bed's low, mid and high layers in and out; synthesized timpani, brass and cymbals land on the player's actions.
 
 Not affiliated with or endorsed by any film or game franchise.
+
+**Opening sequence.** The Dawnlight mark and Azonix wordmark are Dawnlight Labs' own. The pixel critter on the "Built with Claude" card is a hand-drawn nod to Claude's mascot: this game was written with Claude (Fable 5.2); it is not an Anthropic product and is not endorsed by Anthropic. Cinzel is used under the SIL Open Font License.

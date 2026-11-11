@@ -71,3 +71,11 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Tempo slows the tape to 0.84 and closes a filter; death winds it down to half speed; pause muffles; taking a hit ducks the music.
 - If the beds fail to load, the old synthesized pad and pulse stand in.
 - Nobody has listened to any of this yet. Levels and the taste of the accents are unverified.
+
+## Opening sequence, loading, saved runs
+- `src/boot/boot.js`: cards on an eclipse chart (Dawnlight mark, Built with Claude / Fable 5.2 with a pixel critter, three.js, Amaan Syed, then the real menu). Mode is first (no `riposte.seenAt`), cold (last visit over 7 days ago, Skip shown) or warm (straight to the menu behind a brief loader). `?intro` forces first, `?nointro` forces warm.
+- A click is required before the sequence so it can have sound.
+- `preload()` in `src/app.js`: fonts, one of every sentinel type, `renderer.compileAsync`, four warm frames (reflection, bloom, lens), then all five music beds fetched into the HTTP cache. The frame loop is paused while booting. The loader is a blade leaving its hilt.
+- Saved run: `riposte.run` is written at the start of every bout from II on and cleared on death; the menu shows Continue. Best score, blade colour, aim mode and tutorial state were already persisted.
+- Menu: left-aligned list on landscape with the hilt on the right; its own theme (`menu.mp3`, "The Path of the Force").
+- CSS/WAAPI animations do not advance while the preview pane is in the background; captures were made by finishing animations by hand.

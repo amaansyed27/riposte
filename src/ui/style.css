@@ -265,3 +265,54 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 #credits { justify-content: center; background: radial-gradient(ellipse at center, rgba(3,6,11,.3), rgba(3,6,11,.86)); pointer-events: auto; }
 #credits a { color: rgb(var(--blade)); text-decoration: none; border-bottom: 1px solid rgba(var(--blade), .4); }
 #credits a:hover { border-bottom-color: rgb(var(--blade)); }
+
+/* ============================== opening sequence + loader ============================== */
+@font-face { font-family: Azonix; src: url("/fonts/Azonix.otf") format("opentype"); font-display: swap; }
+#boot { position: fixed; inset: 0; z-index: 50; background: #020409; color: #dfe9f7; display: grid; place-items: center; overflow: hidden; transition: opacity 1s ease; cursor: default; }
+#boot.out { opacity: 0; pointer-events: none; }
+#boot .chart { position: absolute; left: 50%; top: 50%; width: max(120vw, 120vh); height: max(120vw, 120vh); transform: translate(-50%, -50%); color: #9fb6d6; opacity: .0; transition: opacity 1.6s ease; }
+#boot.playing .chart, #boot[data-mode="warm"] .chart { opacity: 1; }
+#boot .orbit { transform-origin: 0 0; animation: orbit 26s linear infinite; }
+#boot .o2 { animation-duration: 41s; animation-direction: reverse; } #boot .o3 { animation-duration: 67s; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+#boot .bc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; padding: 0 6vw; }
+/* Dawnlight */
+.dl-mark { width: clamp(150px, 20vw, 250px); aspect-ratio: 1; } .dl-mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.dl-words { font: 400 clamp(24px, 4.4vw, 56px)/1.2 Azonix, var(--font); letter-spacing: .1em; padding-left: .1em; color: #eaf3ff; }
+/* Clawd */
+.clawd { width: clamp(150px, 22vw, 260px); overflow: visible; filter: drop-shadow(0 18px 30px rgba(217,119,87,.25)); }
+.clawd .leg, .clawd .eye, .clawd .arm-r { transform-box: fill-box; transform-origin: 50% 50%; }
+.cl-text { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.cl-text span { font-size: clamp(13px, 1.6vw, 18px); letter-spacing: .34em; text-transform: uppercase; color: rgba(223,233,247,.72); }
+.cl-text b { font-weight: 300; font-size: clamp(30px, 5vw, 60px); letter-spacing: .14em; color: #f4efe9; }
+/* engine */
+#cEngine canvas { width: clamp(150px, 20vw, 240px); height: auto; }
+.en-text { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.en-text b { font-weight: 200; font-size: clamp(34px, 5.6vw, 72px); letter-spacing: .28em; padding-left: .28em; }
+.en-text span { font-size: clamp(10px, 1.2vw, 13px); letter-spacing: .28em; text-transform: uppercase; color: rgba(223,233,247,.6); }
+/* author: struck metal with a light passing over it */
+.au-by { font-size: clamp(10px, 1.2vw, 14px); letter-spacing: .6em; padding-left: .6em; text-transform: uppercase; color: rgba(223,233,247,.6); }
+.au-name { white-space: nowrap; font-family: Cinzel, "Trajan Pro", Georgia, serif; font-weight: 900; font-size: clamp(34px, 8.4vw, 112px); letter-spacing: .06em; line-height: 1;
+  background: linear-gradient(100deg, #12302f 0%, #1f5a55 22%, #6fd6c4 40%, #fff3c4 50%, #74d2c1 60%, #1f5a55 78%, #12302f 100%); background-size: 320% 100%; background-position: 130% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 1px rgba(170, 255, 235, .18); }
+.au-glint { position: absolute; top: 50%; left: 50%; width: min(70vw, 760px); height: 2px; margin: 0 0 0 calc(min(70vw, 760px) / -2); background: linear-gradient(90deg, transparent, #fff8dc, transparent); filter: blur(.5px) drop-shadow(0 0 12px #9ff); opacity: 0; }
+/* gate + loader: the progress bar is a blade leaving its hilt */
+#bootGate { position: absolute; left: 0; right: 0; top: 44%; text-align: center; font-size: clamp(14px, 1.7vw, 20px); letter-spacing: .6em; padding-left: .6em; text-transform: uppercase; animation: breathe 2.4s ease-in-out infinite; }
+#bootGate small { display: block; margin-top: 16px; font-size: 10px; letter-spacing: .34em; color: rgba(223,233,247,.45); }
+@keyframes breathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+#bootLoader { position: absolute; left: 50%; bottom: calc(7vh + var(--sab)); transform: translateX(-50%); width: min(420px, 72vw); transition: opacity .6s; }
+#boot.loaded.playing #bootLoader { opacity: 0; }
+#bootLoader .hilt { position: absolute; left: -30px; top: -3px; width: 30px; height: 8px; border-radius: 2px; background: linear-gradient(90deg, #20242a, #aeb6c0 35%, #2b3038 55%, #c9a45c 70%, #3a4048); }
+#bootLoader .track { height: 2px; background: rgba(255,255,255,.1); border-radius: 2px; }
+#bootBeam { height: 100%; border-radius: 2px; background: #fff; transform-origin: 0 50%; transform: scaleX(0); transition: transform .35s cubic-bezier(.2,.8,.2,1); box-shadow: 0 0 6px 1px rgb(var(--blade)), 0 0 20px 5px rgba(var(--blade), .75); }
+#bootLoader p { display: flex; justify-content: space-between; margin-top: 12px; font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: rgba(223,233,247,.55); }
+#bootLoader b { font-weight: 500; color: #fff; font-variant-numeric: tabular-nums; }
+#bootSkip { position: absolute; right: max(18px, 3vw); bottom: calc(6vh + var(--sab)); }
+/* ---------- menu, left-aligned over the vista */
+.legal { font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: rgba(214,228,245,.3); }
+@media (min-aspect-ratio: 1/1) {
+  #intro .menu { position: absolute; left: max(40px, 6vw); bottom: calc(11vh + var(--sab)); align-items: flex-start; gap: 4px; }
+  #intro .menu .best-line { margin-top: 18px; }
+  #intro .legal { position: absolute; left: max(40px, 6vw); bottom: calc(4vh + var(--sab)); }
+}
+@media (max-aspect-ratio: 1/1) { #intro .legal { margin-top: 8px; text-align: center; } }

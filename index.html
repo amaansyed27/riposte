@@ -16,7 +16,7 @@
 
   <div id="ui">
     <!-- 1. opening -->
-    <section id="intro" class="screen">
+    <section id="intro" class="screen hidden">
       <div class="crest">
         <p class="over">A duel you cannot start</p>
         <h1 id="wordmark" aria-label="Riposte">
@@ -28,12 +28,14 @@
         <p class="tag">You cannot strike. Only return.</p>
       </div>
       <nav class="menu">
+        <button id="btnContinue" class="btn primary big hidden">Continue</button>
         <button id="btnPlay" class="btn primary big">Play</button>
         <button id="btnSaber" class="btn desk">Use your phone as the saber</button>
         <button id="btnControls" class="btn">Controllers</button>
         <button id="btnCredits" class="btn small">Credits</button>
         <p id="introBest" class="best-line"></p>
       </nav>
+      <p class="legal">© 2026 Amaan Syed · Dawnlight Labs · Built with Claude</p>
     </section>
 
     <!-- 2. blade select -->
@@ -89,7 +91,8 @@
         <div class="card-k">Credits</div>
         <div class="ctl">
           <div class="ctl-row"><div><b>Score</b><span>Built from three orchestral pieces by <a href="https://pixabay.com/users/luis_humanoide-12661853/" target="_blank" rel="noopener">Luis_Humanoide</a>, used under the Pixabay Content License and edited into loops:<br>
-            <a href="https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/" target="_blank" rel="noopener">Secrets of the Jedi</a> (menus, the breath between bouts, and its swell when a master falls) ·
+            <a href="https://pixabay.com/music/main-title-secrets-of-the-jedi-inspired-by-star-wars-331637/" target="_blank" rel="noopener">Secrets of the Jedi</a> (the breath between bouts, and its swell when a master falls) ·
+            <a href="https://pixabay.com/music/main-title-the-path-of-the-force-inspired-by-star-wars-405335/" target="_blank" rel="noopener">The Path of the Force</a> (the menu theme) ·
             <a href="https://pixabay.com/music/main-title-star-wars-style-battle-music-148641/" target="_blank" rel="noopener">Star Wars Style Battle Music</a> (bouts) ·
             <a href="https://pixabay.com/music/main-title-temple-of-the-dark-side-cinematic-dark-choral-music-219925/" target="_blank" rel="noopener">Temple of the Dark Side</a> (masters).</span></div></div>
           <div class="ctl-row"><div><b>Adaptive mix</b><span>The beds are split live into low, mid and high layers that follow the fight: bolts in the air, orbs alive, your streak, your last guard. Timpani, low brass, cymbal swells and the four-note horn call are synthesized here and land on what you do.</span></div></div>
@@ -152,6 +155,69 @@
       </button>
     </div>
     <div id="fallback" class="hidden">This needs WebGL2. Try a recent Chrome, Edge, Safari or Firefox.</div>
+  </div>
+  <!-- opening sequence + loader -->
+  <div id="boot" class="hidden">
+    <svg class="chart" viewBox="-500 -500 1000 1000" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="1">
+        <circle r="150" opacity=".22"/><circle r="212" opacity=".16"/><circle r="300" opacity=".11"/><circle r="430" opacity=".07"/>
+        <circle r="150" opacity=".5" stroke-dasharray="2 14"/>
+        <path d="M-480 0H-320M320 0H480M0-480V-320M0 320V480M-330-330-240-240M240 240 330 330M330-330 240-240M-240 240-330 330" opacity=".12"/>
+      </g>
+      <g class="orbit o1"><circle cx="212" r="5" fill="currentColor"/><path d="M222 0h46" stroke="currentColor" opacity=".4"/></g>
+      <g class="orbit o2"><circle cx="300" r="2.6" fill="currentColor" opacity=".7"/></g>
+      <g class="orbit o3"><circle cx="430" r="2" fill="currentColor" opacity=".5"/></g>
+    </svg>
+
+    <div id="cDawn" class="bc hidden">
+      <div class="dl-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" aria-hidden="true">
+        <defs>
+          <clipPath id="orb-clip"><circle cx="250" cy="250" r="200"/></clipPath>
+          <radialGradient id="orb-base-blue" cx="65%" cy="65%" r="75%"><stop offset="0%" stop-color="#1862c6"/><stop offset="55%" stop-color="#0d499e"/><stop offset="100%" stop-color="#072d72"/></radialGradient>
+          <radialGradient id="parallax-mid-navy" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#052360" stop-opacity=".95"/><stop offset="60%" stop-color="#08347c" stop-opacity=".6"/><stop offset="100%" stop-color="#0d499e" stop-opacity="0"/></radialGradient>
+          <radialGradient id="parallax-deep-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#011545"/><stop offset="48%" stop-color="#031f5c" stop-opacity=".9"/><stop offset="80%" stop-color="#08337a" stop-opacity=".35"/><stop offset="100%" stop-color="#0d499e" stop-opacity="0"/></radialGradient>
+          <linearGradient id="crescent-fill" x1="25%" y1="20%" x2="90%" y2="90%"><stop offset="0%" stop-color="#7ebbf2"/><stop offset="45%" stop-color="#a5d4f9"/><stop offset="85%" stop-color="#cde8fd"/><stop offset="100%" stop-color="#9bc5e8"/></linearGradient>
+          <filter id="crescent-soft-edge" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4"/></filter>
+          <filter id="azure-glow-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+          <mask id="crescent-swipe-mask"><rect width="500" height="500" fill="black"/>
+            <g class="swipe-lead"><circle cx="250" cy="250" r="225" fill="white" filter="url(#crescent-soft-edge)"/></g>
+            <g class="swipe-trail"><circle cx="195" cy="192" r="206" fill="black" filter="url(#crescent-soft-edge)"/></g></mask>
+        </defs>
+        <g clip-path="url(#orb-clip)">
+          <circle cx="250" cy="250" r="202" fill="url(#orb-base-blue)"/>
+          <g class="parallax-rim"><circle cx="310" cy="310" r="190" fill="#1b6ad1" opacity=".35" filter="url(#azure-glow-blur)"/></g>
+          <g class="parallax-mid"><circle cx="200" cy="195" r="220" fill="url(#parallax-mid-navy)"/></g>
+          <g class="parallax-core"><circle cx="175" cy="175" r="165" fill="url(#parallax-deep-core)"/></g>
+          <g mask="url(#crescent-swipe-mask)"><circle cx="250" cy="250" r="202" fill="url(#crescent-fill)"/>
+            <g class="swipe-trail"><circle cx="199" cy="196" r="206" fill="none" stroke="#4ea0f0" stroke-width="10" opacity=".65" filter="url(#azure-glow-blur)"/></g></g>
+        </g>
+      </svg></div>
+      <div class="dl-words">DAWNLIGHT</div>
+    </div>
+
+    <div id="cClawd" class="bc hidden">
+      <svg class="clawd" viewBox="0 0 15 9.4" shape-rendering="crispEdges" aria-hidden="true">
+        <g fill="#d97757"><rect x="2.5" y="0" width="10" height="6.6"/><rect x="0" y="3" width="2.5" height="2"/><rect class="arm-r" x="12.5" y="3" width="2.5" height="2"/>
+          <rect class="leg" x="3.5" y="6.6" width="1.1" height="2.7"/><rect class="leg" x="5.6" y="6.6" width="1.1" height="2.7"/><rect class="leg" x="8.3" y="6.6" width="1.1" height="2.7"/><rect class="leg" x="10.4" y="6.6" width="1.1" height="2.7"/></g>
+        <rect class="eye" x="4.1" y="1.5" width="1.2" height="1.2" fill="#0a0a0a"/><rect class="eye" x="9.7" y="1.5" width="1.2" height="1.2" fill="#0a0a0a"/>
+      </svg>
+      <div class="cl-text"><span>Built with Claude</span><b>Fable 5.2</b></div>
+    </div>
+
+    <div id="cEngine" class="bc hidden">
+      <canvas width="360" height="360"></canvas>
+      <div class="en-text"><b>three.js</b><span>WebGL 2 · rendered live · no asset files</span></div>
+    </div>
+
+    <div id="cAuthor" class="bc hidden">
+      <span class="au-by">A game by</span>
+      <span class="au-name">AMAAN SYED</span>
+      <i class="au-glint"></i>
+    </div>
+
+    <div id="bootGate"><span class="desk">Click to begin</span><span class="touch">Tap to begin</span><small>Best with sound</small></div>
+    <div id="bootLoader"><i class="hilt"></i><div class="track"><div id="bootBeam"></div></div><p><span id="bootLabel">Reading the sky</span><b><span id="bootPct">0</span>%</b></p></div>
+    <button id="bootSkip" class="btn small hidden">Skip</button>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>

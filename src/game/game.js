@@ -43,6 +43,10 @@ export class Game {
     this.tempo = 0; this.tempoLive = 0; this.chain = 0; this.lastDeflect = -9; this.lastFire = -9; this.clock = 0;
     this.slowT = 0; this.stopT = 0; this.invuln = 0; this.hitFlash = 0; this.timers = []; this.paused = false; this.boss = null;
   }
+  // a run in progress is kept in localStorage from bout II on, and cleared when it ends
+  saved() { try { const v = JSON.parse(localStorage.getItem('riposte.run') || 'null'); return v && v.bout >= 2 && v.integrity > 0 ? v : null; } catch { return null; } }
+  persist() { try { if (this.bout >= 2) localStorage.setItem('riposte.run', JSON.stringify({ bout: this.bout, score: this.score, integrity: this.integrity, returned: this.returned, ripostes: this.ripostes, streak: this.streak, tempo: this.tempo, at: Date.now() })); } catch {} }
+  forget() { try { localStorage.removeItem('riposte.run'); } catch {} }
   after(sec, fn, real = false) { this.timers.push({ t: sec, fn, real }); }
   get timeScale() {
     if (this.paused) return 0;
@@ -55,8 +59,8 @@ export class Game {
   clearField() { for (const e of this.enemies) e.dispose(); this.enemies = []; this.bolts.clear(); }
 
   // ---------- flow
-  start() {
-    const { app } = this;
+  start(resume = false) {
+    const { app } = this; const sv = resume ? this.saved() : null; if (!resume) this.forget();
     this.clearField(); this.reset(); this.state = 'starting'; this.hold = false; app.audio.tempo(false); app.audio.muffle(false); app.audio.music('rest');
     let seen = false; try { seen = !!localStorage.getItem('riposte.tut'); } catch {}
     this.tut = seen ? 0 : 1; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false;
@@ -65,18 +69,22 @@ export class Game {
     app.sword.setIntegrity(3); app.sword.overTarget = 0;
     if (!app.sword.isOn) app.sword.ignite();
     app.pose = 'play'; app.hud.showHud(true);
-    this.after(0.9, () => this.beginBout(1));
+    if (sv) {
+      Object.assign(this, { score: sv.score, integrity: sv.integrity, returned: sv.returned, ripostes: sv.ripostes, streak: sv.streak, tempo: sv.tempo || 0, tut: 0 });
+      app.hud.setScore(this.score); app.hud.setPips(this.integrity); app.sword.setIntegrity(this.integrity); app.hud.setTempo(this.tempo / TEMPO_MAX, false);
+    }
+    this.after(0.9, () => this.beginBout(sv ? sv.bout : 1));
   }
   home() {
     const { app } = this;
     this.clearField(); this.reset(); this.state = 'menu'; this.visitT = 5; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false; app.hud.el.banner.classList.remove('show');
     app.audio.setPlaying(false); app.audio.music('menu'); app.audio.muffle(false); app.audio.tempo(false); app.sword.overTarget = 0; app.sword.retract();
-    app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'title';
+    app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'title'; if (app.refreshMenu) app.refreshMenu();
   }
   beginBout(n) {
     const { app } = this;
     this.bout = n; this.cfg = boutConfig(n); this.queue = [...this.cfg.queue]; this.cdScale = this.cfg.cd;
-    this.state = 'play'; this.spawnT = 1.1; this.escortT = 6;
+    this.state = 'play'; this.spawnT = 1.1; this.escortT = 6; this.persist();
     const boss = this.cfg.boss;
     const name = boss ? `${TYPES[boss].name}${this.cfg.tier ? ' ' + ROMAN(this.cfg.tier + 1) : ''}` : null;
     app.hud.setBout(n); app.hud.banner(boss ? 'A master approaches' : 'En garde', boss ? name.toUpperCase() : `BOUT ${ROMAN(n)}`, this.cfg.sub, 2300);
@@ -100,6 +108,7 @@ export class Game {
   }
   die() {
     const { app } = this;
+    this.forget();
     this.state = 'dead'; this.tempoLive = 0; this.hold = false; app.hud.hint(null); app.sword.overTarget = 0; app.hud.setTempo(0, false);
     app.audio.setPlaying(false); app.audio.death();
     app.sword.disturb(1.6);

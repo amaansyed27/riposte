@@ -1,7 +1,8 @@
 // The adaptive score.
 //
 // Beds: four loops cut from three orchestral pieces by Luis_Humanoide (Pixabay Content License; see README credits):
-//   calm   - quiet opening of "Secrets of the Jedi"            -> menus, blade select, the breath between bouts
+//   menu   - "The Path of the Force"                           -> opening page and blade select
+//   calm   - quiet opening of "Secrets of the Jedi"            -> the breath between bouts
 //   theme  - the heroic swell of the same piece                 -> a master falls
 //   battle - "Star Wars Style Battle Music"                     -> bouts
 //   boss   - "Temple of the Dark Side"                          -> masters
@@ -17,11 +18,11 @@
 import { clamp, lerp, sstep, rand } from '../core/util.js';
 
 const XF = 2.6;                                  // loop crossfade, seconds
-const FILES = ['calm', 'theme', 'battle', 'boss'];
+const FILES = ['menu', 'calm', 'theme', 'battle', 'boss'];
 // which bed plays in which state, and how loud
 const STATES = {
-  menu: { bed: 'calm', level: 0.75, flat: true },
-  select: { bed: 'calm', level: 0.9, flat: true },
+  menu: { bed: 'menu', level: 0.85, flat: true },
+  select: { bed: 'menu', level: 0.95, flat: true },
   rest: { bed: 'calm', level: 0.7, flat: true },
   bout: { bed: 'battle', level: 0.95 },
   boss: { bed: 'boss', level: 1.0, floor: 0.4 },

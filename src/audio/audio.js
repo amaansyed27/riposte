@@ -236,6 +236,14 @@ export class Audio {
     seq.forEach(([fq, glide], i) => this._tone(kind === 'tap' ? 'triangle' : i % 2 ? 'square' : 'triangle', fq, fq * glide, kind === 'tap' ? 0.03 : 0.055, kind === 'tap' ? 0.16 : 0.06, { pan, wet: 0.35, delay: i * gap, filter: { f: 3200, q: 1 } }));
   }
   lanterns() { if (!this.ready) return; this._tone('sine', 220, 70, 0.5, 0.25, { wet: 0.9 }); }
+  // one short signature per opening card
+  logo(kind) {
+    if (!this.ready) return;
+    if (kind === 'dawn') { [0, 7, 12, 19].forEach((sm, i) => this._tone('sine', note(sm), note(sm), 2.4, 0.09, { delay: i * 0.16, wet: 1, attack: 0.25 })); this._burst('highpass', 5000, 9000, 0.7, 1.6, 0.03, { wet: 1, attack: 0.8 }); }
+    else if (kind === 'clawd') { this._chirp = 0; this.chirp('hello', 0); [0, 4, 7].forEach((sm, i) => this._tone('square', note(sm + 12), note(sm + 12), 0.09, 0.05, { delay: 0.75 + i * 0.09, wet: 0.3, filter: { f: 2400 } })); }
+    else if (kind === 'engine') { this._burst('bandpass', 200, 2600, 2, 1.1, 0.22, { wet: 0.7, attack: 0.5 }); this._tone('sawtooth', note(-24), note(-24), 1.8, 0.14, { wet: 0.6, attack: 0.4, filter: { f: 500, q: 2 } }); }
+    else if (kind === 'author') { for (let i = 0; i < 7; i++) this._tone('sine', note(24 + [0, 3, 7, 10, 12, 15, 19][i]), note(24 + [0, 3, 7, 10, 12, 15, 19][i]), 1.6, 0.035, { delay: 0.5 + i * 0.07, wet: 1, pan: (i % 2) * 0.8 - 0.4 }); this._tone('sawtooth', note(-12), note(-12), 2.6, 0.16, { wet: 0.8, attack: 0.5, filter: { f: 700, q: 1.5 } }); this._tone('sine', 70, 40, 0.8, 0.5, { delay: 0.45, wet: 0.4 }); }
+  }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
   sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }
 }
