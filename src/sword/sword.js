@@ -200,9 +200,9 @@ export class Sword {
       this.len = damp(this.len, 1, 12, dt); this.crystal = damp(this.crystal, 1, 8, dt);
       this.power = damp(this.power, 1, 6, dt); this.instab = damp(this.instab, 0.10, 4, dt);
     } else if (this.state === 'retracting') {
-      const x = clamp(t / 0.30);
-      this.len = this.len0 * (1 - Math.pow(x, 1.45));
-      this.power = 1 + 0.9 * x; this.instab = 0.12 + 0.5 * x; tipFlare = 1.5 * x;
+      const x = clamp(t / 0.40);
+      this.len = this.len0 * (1 - Math.pow(x, 1.25));     // shortens from the first frame, a bright bead riding the tip
+      this.power = 1 + 0.15 * x; this.instab = 0.12 + 0.3 * x; tipFlare = 0.5 + 0.7 * x;
       this.crystal = 1 - 0.3 * x;
       if (x >= 1) {
         this.state = 'off'; this.t = 0; this.len = 0; this.power = 0; this.heat = 1; this.smoke = 0.9;
@@ -305,10 +305,10 @@ export class Sword {
   _retractSnap() {
     const { fx, env } = this;
     const a = this.A;
-    fx.glows.emit(a, this.color, 0.16, 0.2, { bright: 3 });
-    fx.glows.emit(a, _white, 0.05, 0.12, { bright: 6 });
+    fx.glows.emit(a, this.color, 0.09, 0.2, { bright: 2.2 });
+    fx.glows.emit(a, _white, 0.03, 0.12, { bright: 4 });
     fx.sparks.burst(a, _c0.copy(HEAT).lerp(this.color, 0.4), 12, 2.4, { dir: _b.set(0, 1, 0).transformDirection(this.rig.matrixWorld), spread: 0.9, life: 0.5, grav: 6, bright: 4 });
-    env.flash(a, this.color, 1.0, 0.25);
+    env.flash(a, this.color, 0.5, 0.25);
     this.onEvent('retract-done');
   }
 
@@ -334,8 +334,8 @@ export class Sword {
       if (!s) { P.fill(0, o, o + 6); Cc.fill(0, o, o + 6); continue; }
       P[o] = s.a.x; P[o + 1] = s.a.y; P[o + 2] = s.a.z; P[o + 3] = s.b.x; P[o + 4] = s.b.y; P[o + 5] = s.b.z;
       const f = i >= hist.length ? 0 : Math.pow(1 - s.age / LIFE, 1.5) * clamp(s.k * 1.6) * this.power;
-      Cc[o] = col.r * f * 0.25; Cc[o + 1] = col.g * f * 0.25; Cc[o + 2] = col.b * f * 0.25;
-      Cc[o + 3] = (col.r + 0.25) * f * 0.9; Cc[o + 4] = (col.g + 0.25) * f * 0.9; Cc[o + 5] = (col.b + 0.25) * f * 0.9;
+      Cc[o] = col.r * f * 0.08; Cc[o + 1] = col.g * f * 0.08; Cc[o + 2] = col.b * f * 0.08;
+      Cc[o + 3] = (col.r + 0.25) * f * 0.35; Cc[o + 4] = (col.g + 0.25) * f * 0.35; Cc[o + 5] = (col.b + 0.25) * f * 0.35;
     }
     this.trail.geometry.attributes.position.needsUpdate = true;
     this.trail.geometry.attributes.color.needsUpdate = true;

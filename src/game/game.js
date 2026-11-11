@@ -56,7 +56,7 @@ export class Game {
   // ---------- flow
   start() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'starting'; app.env.setStreak(0); app.env.setMood(null);
+    this.clearField(); this.reset(); this.state = 'starting'; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false;
     app.hud.screen(null);
     app.hud.setScore(0); app.hud.setCombo(0, 1); app.hud.setPips(3); app.hud.setTempo(0, false); app.hud.boss(null);
     app.sword.setIntegrity(3); app.sword.overTarget = 0;
@@ -66,9 +66,9 @@ export class Game {
   }
   home() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'menu'; this.visitT = 5; app.env.setStreak(0); app.env.setMood(null);
+    this.clearField(); this.reset(); this.state = 'menu'; this.visitT = 5; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false; app.hud.el.banner.classList.remove('show');
     app.audio.setPlaying(false); app.sword.overTarget = 0; app.sword.retract();
-    app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'away';
+    app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'title';
   }
   beginBout(n) {
     const { app } = this;
@@ -86,7 +86,7 @@ export class Game {
     this.after(1.0, () => { app.sword.retract(); app.pose = 'rest'; app.audio.setPlaying(false); });
     this.after(1.3, () => {
       const heal = this.integrity < 3;
-      if (heal) { this.integrity++; app.hud.setPips(this.integrity, true); app.sword.setIntegrity(this.integrity); }
+      if (heal) { app.env.heart = false; this.integrity++; app.hud.setPips(this.integrity, true); app.sword.setIntegrity(this.integrity); }
       app.hud.banner('Bout cleared', 'TOUCHÉ', heal ? '+1 guard restored' : `${this.score.toLocaleString('en-US')} points`, 1500);
     });
     this.after(3.1, () => { app.sword.ignite(); app.pose = 'play'; });
@@ -209,7 +209,7 @@ export class Game {
   pickSlot() {
     let best = null, bd = -1;
     for (let i = 0; i < 8; i++) {
-      const mx = this.app.aspect < 1 ? 0.5 : 0.7; const c = { x: rand(-mx, mx), y: rand(0.10, 0.56), z: rand(7.5, 11.5) };
+      const mx = this.app.aspect < 1 ? 0.5 : 0.7; const c = { x: rand(-mx, mx), y: rand(0.10, 0.56), z: this.app.aspect < 1 ? rand(10.5, 14.5) : rand(6.5, 10) };
       let d = 9;
       for (const e of this.enemies) if (e.ndcSlot) d = Math.min(d, Math.hypot(e.ndcSlot.x - c.x, (e.ndcSlot.y - c.y) * 1.4));
       if (d > bd) { bd = d; best = c; }
@@ -298,13 +298,13 @@ export class Game {
     const dmg = e.type === 'bastion' ? (b.strong ? 3 : 1) : (b.strong ? 2 : 1);
     const res = e.damage(dmg);
     const p = e.group.position, q = app.project(p), pan = q.nx * 0.8;
-    app.fx.sparks.burst(p, _c.copy(col).lerp(WHITE, 0.4), 22, 9, { life: 0.5, bright: 5 });
-    app.env.flash(p, col, 5, 0.3);
+    app.fx.sparks.burst(p, _c.copy(col).lerp(WHITE, 0.4), 22, 9, { life: 0.5, bright: e.boss ? 2.5 : 5 });
+    app.env.flash(p, col, e.boss ? 2 : 4, 0.3);
     if (res === 'dead') return this.kill(e, b.strong);
     if (res === 'immune') { app.hud.floater(q.x, q.y, 'SHIELDED'); app.audio.shield(pan); return; }
     if (res === 'shield') { app.fx.sparks.burst(p, e.color, 60, 12, { life: 0.7, bright: 4 }); app.fx.debris.burst(p, 9, 8, 1.3); app.fx.rings.emit(p, e.color, { r0: 1, r1: 4, life: 0.5, bright: 3 }); app.audio.shield(pan); app.hud.floater(q.x, q.y, 'ARMOUR BROKEN'); }
-    else if (res === 'phase') { app.hud.callout(e.type === 'bastion' ? 'SHELL SHATTERED' : 'SECOND MOVEMENT', true); app.fx.debris.burst(p, 26, 12, 1.6); app.fx.rings.emit(p, e.color, { r0: 1, r1: 9, life: 0.8, bright: 4 }); app.audio.explode(false, pan); app.addTrauma(0.4); this.slowT = 0.5; this.slowScale = 0.3; }
-    else { app.audio.explode(false, pan); app.fx.glows.emit(p, col, 1.2, 0.2, { bright: 2 }); if (e.boss) app.hud.floater(q.x, q.y, `−${dmg}`, b.strong); }
+    else if (res === 'phase') { app.hud.callout(e.type === 'bastion' ? 'SHELL SHATTERED' : 'SECOND MOVEMENT', true); app.fx.debris.burst(p, 26, 12, 1.6); app.fx.rings.emit(p, e.color, { r0: 1, r1: 5, life: 0.7, bright: 2 }); app.audio.explode(false, pan); app.addTrauma(0.4); this.slowT = 0.5; this.slowScale = 0.3; }
+    else { app.audio.explode(false, pan); app.fx.glows.emit(p, col, 0.7, 0.18, { bright: 1.2 }); if (e.boss) app.hud.floater(q.x, q.y, `−${dmg}`, b.strong); }
     if (e.boss) {
       app.hud.boss(null, clamp(e.hp / e.maxHp));
       // the Hydra regrows its leashes each time it loses three
@@ -315,7 +315,8 @@ export class Game {
 
   kill(e, strong) {
     const { app } = this; const p = e.group.position.clone(), q = app.project(p);
-    const big = e.boss, s = big ? 3 : 1.3;
+    const big = e.boss, s = big ? 2 : 1.3;
+    this.glanceP = p; this.glanceT = 0.6;
     const pts = e.T.score * this.mult;
     this.addScore(pts);
     app.hud.floater(q.x, q.y, `+${pts.toLocaleString('en-US')}`, strong);
@@ -356,7 +357,7 @@ export class Game {
     this.integrity--; this.combo = 0; this.invuln = 0.9; this.hitFlash = 0.6;
     app.hud.setPips(this.integrity); app.hud.setCombo(0, 1); app.sword.setIntegrity(this.integrity);
     app.addTrauma(0.85); app.sword.disturb(1.2); app.audio.hit(); app.feedback('hit');
-    app.env.setStreak(0); app.audio.lanterns();
+    app.env.setStreak(0); app.audio.lanterns(); app.env.heart = this.integrity === 1;
     for (const e of this.enemies) e.gloat = 1;
     this.after(0.35, () => app.audio.chirp('laugh', 0));
     app.post.shock(0.5, 0.5, 0.6, 1.4);
@@ -385,6 +386,9 @@ export class Game {
         if (this.tempoLive <= 0) { app.sword.overTarget = 0; app.audio.tempo(false); app.hud.setTempo(0, false); }
       }
     }
+    // where the orbs' eyes go: your cursor on the menus, a comrade's explosion for a beat, otherwise your blade
+    this.glanceT = (this.glanceT || 0) - rdt;
+    app.look = this.state === 'menu' ? app.ndcToWorld(app.input.ndc.x, app.input.ndc.y, 2.5, this._look || (this._look = new THREE.Vector3())) : this.glanceT > 0 ? this.glanceP : null;
     // on the menus a curious Remote drifts in, looks you over, and leaves
     if (this.state === 'menu') {
       this.visitT = (this.visitT ?? 4) - rdt;

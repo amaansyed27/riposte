@@ -5,12 +5,12 @@ import { makeBeam } from '../sword/beam.js';
 
 const C = (r, g, b) => new THREE.Color(r, g, b);
 export const TYPES = {
-  wisp: { name: 'Remote', hull: 0xe9e3d6, hp: 1, score: 100, color: C(1.0, 0.16, 0.07), r: 0.68, charge: 0.55, cd: [1.5, 2.6] },
-  twin: { name: 'Binary', hull: 0x565b6b, hp: 1, score: 180, color: C(1.0, 0.10, 0.50), r: 0.44, charge: 0.6, cd: [2.0, 3.0] },
-  lancer: { name: 'Lancer', hull: 0xd8c394, hp: 1, score: 300, color: C(1.0, 0.85, 0.30), r: 0.55, charge: 1.0, cd: [2.4, 3.6] },
-  bulwark: { name: 'Bulwark', hull: 0xb07a48, hp: 2, score: 400, color: C(1.0, 0.45, 0.02), r: 0.78, charge: 0.7, cd: [1.9, 2.9] },
+  wisp: { name: 'Remote', hull: 0xe9e3d6, hp: 1, score: 100, color: C(1.0, 0.16, 0.07), r: 0.82, charge: 0.55, cd: [1.5, 2.6] },
+  twin: { name: 'Binary', hull: 0x565b6b, hp: 1, score: 180, color: C(1.0, 0.10, 0.50), r: 0.54, charge: 0.6, cd: [2.0, 3.0] },
+  lancer: { name: 'Lancer', hull: 0xd8c394, hp: 1, score: 300, color: C(1.0, 0.85, 0.30), r: 0.66, charge: 1.0, cd: [2.4, 3.6] },
+  bulwark: { name: 'Bulwark', hull: 0xb07a48, hp: 2, score: 400, color: C(1.0, 0.45, 0.02), r: 0.9, charge: 0.7, cd: [1.9, 2.9] },
   maestro: { name: 'The Maestro', boss: true, hp: 12, score: 2500, color: C(1.0, 0.06, 0.12), r: 1.45, charge: 0.9, cd: [1.6, 2.2] },
-  hydra: { name: 'The Hydra', boss: true, hp: 9, score: 3500, color: C(0.80, 0.12, 1.0), r: 1.25, charge: 0.8, cd: [1.4, 2.0] },
+  hydra: { name: 'The Hydra', boss: true, hp: 9, score: 3500, color: C(1.0, 0.22, 0.70), r: 1.25, charge: 0.8, cd: [1.4, 2.0] },
   bastion: { name: 'The Bastion', boss: true, hp: 16, score: 5000, color: C(1.0, 0.50, 0.08), r: 1.7, charge: 1.0, cd: [1.5, 2.1] },
 };
 
@@ -215,17 +215,17 @@ export class Enemy {
     if (this.petals) this.petals.rotation.y += dt * (0.8 + ck * 4);
     if (this.shell) this.shell.rotation.y += dt * 0.25;
     const pulse = 1 + 0.15 * Math.sin(time * 5 + this.seed);
-    this.eyeMat.color.copy(this.color).multiplyScalar((2.0 + ck * 8) * pulse).addScalar(ck * ck * 2.2);
+    this.eyeMat.color.copy(this.color).multiplyScalar((2.0 + ck * 8) * pulse * (this.boss ? 0.45 : 1)).addScalar(ck * ck * (this.boss ? 0.6 : 2.2));
     this.lensMat.color.copy(this.color).multiplyScalar(0.7 + ck * 2.5 + this.flinch * 3);
     this.trim.emissiveIntensity = 0.4 + ck * 1.6 + this.flinch * 2;
-    for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (0.9 + ck * 1.2) * pulse); s.material.color.copy(this.color).multiplyScalar(0.5 + ck * 1.0); }
+    for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (0.9 + ck * 1.2) * pulse * (this.boss ? 0.45 : 1)); s.material.color.copy(this.color).multiplyScalar(0.5 + ck * 1.0); }
     if (this.shield) { const u = this.shield.material.uniforms; u.uTime.value = time; u.uHit.value = Math.max(0, u.uHit.value - dt * 3); if (this.type === 'hydra') this.shield.visible = this.shielded; }
-    if (this.seams) this.seams.material.color.copy(this.color).multiplyScalar(1.5 + ck * 4 + this.flinch * 5);
+    if (this.seams) this.seams.material.color.copy(this.color).multiplyScalar(0.7 + ck * 1.4 + this.flinch * 2);
     // the eye: blinks, squints while charging, goes wide when its own bolt is coming back, follows your blade
     this.blink -= dt; if (this.blink <= 0) this.blink = rand(1.6, 5);
     const open = this.flinch > 0.4 ? 0.12 : this.scared > 0.05 ? 1.25 : this.blink < 0.11 ? 0.05 : this.state === 'charge' ? 0.5 : this.gloat > 0.05 ? 0.6 : 0.92;
     this.lid += (open - this.lid) * clamp(dt * 22);
-    this._l.copy(this.app.sword.Bfull); g.worldToLocal(this._l);
+    this._l.copy(this.app.look || this.app.sword.Bfull); g.worldToLocal(this._l);
     const lz = Math.max(this._l.z, 1), lx = clamp(this._l.x / lz * 1.6, -1, 1) * 0.15, ly = clamp(this._l.y / lz * 1.6, -1, 1) * 0.13;
     for (const ey of this.eyes) if (ey.pupil) { ey.lidU.rotation.x = -this.lid * 1.25; ey.lidL.rotation.x = this.lid * 1.25; ey.pupil.position.x += (lx + (this.scared ? Math.sin(time * 60) * 0.03 : 0) - ey.pupil.position.x) * clamp(dt * 12); ey.pupil.position.y += (ly - ey.pupil.position.y) * clamp(dt * 12); ey.pupil.scale.setScalar(this.scared > 0.05 ? 0.6 : 1 + ck * 0.5); ey.pupil.scale.z = 0.4; }
     for (const { w, sx } of this.wings) { w.rotation.z = sx * (0.18 + 0.22 * Math.sin(time * (3.2 + this.scared * 30 + this.gloat * 10) + this.seed) + ck * 0.5); w.rotation.y = sx * (0.5 + ck * 0.35); }

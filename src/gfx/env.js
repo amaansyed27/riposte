@@ -387,6 +387,7 @@ export class Environment {
       L.m.color.setRGB(1.0, 0.72, 0.42).multiplyScalar(base * (1 - L.k)); L.m.color.r += L.k * 3.2; L.m.color.g += L.k * 2.1; L.m.color.b += L.k * 0.7;
     }
     u.uCC.value.lerp(this.mood, clamp(vdt * 1.2));
+    if (this.heart) u.uCC.value.copy(this.mood).multiplyScalar(1 + 0.55 * Math.pow(Math.max(0, Math.sin(time * 3.4)), 3));
     this.gather += ((u.uBladePow.value > 0.3 ? 1 : 0) - this.gather) * clamp(vdt * 1.6); this.uGather.value = this.gather;
 
     // light bus -> floor uniforms + 3 real point lights

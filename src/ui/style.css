@@ -254,3 +254,10 @@ body { touch-action: none; user-select: none; -webkit-user-select: none; }
 #swatches button[aria-checked="true"]::after { opacity: 1; box-shadow: 0 0 8px 3px rgb(var(--c)), 0 0 22px 8px rgba(var(--c), .8); }
 @media (max-width: 620px) { .btn.big { letter-spacing: .44em; font-size: 14px; } .row { gap: 14px; } }
 @media (prefers-reduced-motion: reduce) { .wm-top, .wm-bot, .wm-cut, .wm-mirror, .bl::before { animation-duration: .01s !important; animation-delay: 0s !important; } }
+
+/* boss health as discrete pips, not a progress bar */
+#bossbar .track { background: none; height: 8px; border-radius: 0; }
+#bossFill, #bossbar .track::before { -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 14px); mask-image: repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 14px); }
+#bossbar .track { position: relative; } #bossbar .track::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.14); }
+#bossFill { position: relative; }
+#intro.out .menu, #intro.out .tag, #intro.out .over { opacity: 0 !important; transition: opacity .5s; animation: none; }

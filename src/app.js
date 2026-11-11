@@ -40,7 +40,7 @@ scene.environmentIntensity = 0.32;
 const timeU = { value: 0 };
 const app = {
   renderer, scene, camera, camRig, timeU, coarse,
-  time: 0, size: { w: 1, h: 1 }, aspect: 1, pose: 'away', autoplay: false,
+  time: 0, size: { w: 1, h: 1 }, aspect: 1, pose: 'title', autoplay: false,
   camPos: new THREE.Vector3(0, 1.55, 0),
   trauma: 0, kickV: 0, fovPunch: 0, quality: 1,
   input: {
@@ -151,12 +151,16 @@ setColor(COLORS[saved] ? saved : 'azure');
 app.hud.setBest(app.game.best);
 
 // ---------- pages
+let leaving = false;
 function toSelect() {
-  app.audio.unlock(); app.audio.ui();
+  if (leaving) return;
+  app.audio.unlock();
   if (coarse && !motion.on) enableMotion();       // tilt effects on phones; silently skipped if refused
-  app.hud.screen('select'); app.pose = 'title'; app.sword.snapPose(); app.sword.ignite();
+  // the first click IS the ignition: the blade lights in your hand on the opening page, then the page turns
+  leaving = true; app.pose = 'title'; app.sword.ignite(); $('intro').classList.add('out');
+  app.later(1.15, () => { leaving = false; $('intro').classList.remove('out'); if (app.hud.current === 'intro') app.hud.screen('select'); });
 }
-function toIntro() { recolor++; app.audio.ui(); app.sword.retract(); app.hud.screen('intro'); app.later(0.4, () => { if (app.hud.current === 'intro') app.pose = 'away'; }); }
+function toIntro() { recolor++; app.audio.ui(); app.sword.retract(); app.hud.screen('intro'); app.pose = 'title'; }
 // "the obvious next thing": used by Enter, gamepad A and the paired phone
 function confirm() {
   app.audio.unlock();
@@ -251,7 +255,7 @@ function poseTargets(dt) {
   const th = Math.tan(THREE.MathUtils.degToRad(app.baseFov) / 2);
   const sway = (o) => (noise1(t * 0.5 + o) - 0.5);
   if (app.pose === 'title') {
-    if (portrait) { _r.set(-0.05, 0.02, -0.9); _d.set(0.16, 0.74, -0.65); }
+    if (portrait) { _r.set(-0.10, 0.16, -1.2); _d.set(0.24, 0.80, -0.55); }
     else { _r.set(-0.20, -0.13, -0.62); _d.set(0.45, 0.50, -0.74); }
     _d.normalize(); _r.x += sway(1) * 0.03; _r.y += sway(2) * 0.03;
     _d.x += sway(3) * 0.06 + app.input.ndc.x * 0.05; _d.y += sway(4) * 0.03 + app.input.ndc.y * 0.03;
@@ -267,7 +271,7 @@ function poseTargets(dt) {
     _a.set(px * 0.30, -1.5, -0.28);
     _d.subVectors(_t, _a).normalize();
     // mouse: the cursor rides the lower blade. touch: the finger IS the hand, so the whole sword sits above it
-    _r.copy(_t).addScaledVector(_d, coarse ? 0.24 : -0.30 * BLADE_LEN);
+    _r.copy(_t).addScaledVector(_d, -0.30 * BLADE_LEN);     // the pointer (or your finger) rides the lower blade
     _r.x += sway(1) * 0.012; _r.y += sway(2) * 0.012;
   }
   _d.normalize();
@@ -341,7 +345,7 @@ window.__riposte = {
   until(fn, max = 6000, dt = 1 / 60) { let i = 0; while (!fn() && i++ < max) frame(dt, false); return i; },
   ignite: () => app.sword.ignite(), retract: () => app.sword.retract(),
   start: () => { app.game.start(); },
-  select: () => toSelect(), home: () => app.game.home(),
+  select: () => { app.sword.ignite(); app.hud.screen('select'); }, home: () => app.game.home(),
   autoplay(on = true) { app.autoplay = on; return on; },
   // render the current state and save the WebGL frame to .shots/<name>.jpg (dev server only)
   async snap(name, width = 960) {
