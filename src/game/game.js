@@ -1,7 +1,7 @@
 // Rules, bouts, scoring, deflection. You cannot attack: every point comes from sending a bolt home.
 import * as THREE from 'three';
 import { Enemy, TYPES } from './enemies.js';
-import { Bolts } from './bolts.js';
+import { Bolts, REACH_FAR } from './bolts.js';
 import { clamp, rand, pick, distPointSeg, lerp } from '../core/util.js';
 import { ROMAN } from '../ui/hud.js';
 
@@ -46,6 +46,7 @@ export class Game {
   after(sec, fn, real = false) { this.timers.push({ t: sec, fn, real }); }
   get timeScale() {
     if (this.paused) return 0;
+    if (this.hold) return 0.04;
     if (this.stopT > 0) return 0.03;
     if (this.slowT > 0) return this.slowScale;
     return this.tempoLive > 0 ? 0.5 : 1;
@@ -56,7 +57,9 @@ export class Game {
   // ---------- flow
   start() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'starting'; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false;
+    this.clearField(); this.reset(); this.state = 'starting'; this.hold = false;
+    let seen = false; try { seen = !!localStorage.getItem('riposte.tut'); } catch {}
+    this.tut = seen ? 0 : 1; app.env.setStreak(0); app.env.setMood(null); app.env.heart = false;
     app.hud.screen(null);
     app.hud.setScore(0); app.hud.setCombo(0, 1); app.hud.setPips(3); app.hud.setTempo(0, false); app.hud.boss(null);
     app.sword.setIntegrity(3); app.sword.overTarget = 0;
@@ -82,6 +85,7 @@ export class Game {
   }
   endBout() {
     const { app } = this;
+    if (this.tut) { this.tut = 0; this.hold = false; app.hud.hint(null); try { localStorage.setItem('riposte.tut', '1'); } catch {} }
     this.state = 'intermission'; this.boss = null; app.hud.boss(null); app.env.setMood(null); app.env.courtPulse(0, 0, 1.4);
     this.after(1.0, () => { app.sword.retract(); app.pose = 'rest'; app.audio.setPlaying(false); });
     this.after(1.3, () => {
@@ -94,7 +98,7 @@ export class Game {
   }
   die() {
     const { app } = this;
-    this.state = 'dead'; this.tempoLive = 0; app.sword.overTarget = 0; app.hud.setTempo(0, false);
+    this.state = 'dead'; this.tempoLive = 0; this.hold = false; app.hud.hint(null); app.sword.overTarget = 0; app.hud.setTempo(0, false);
     app.audio.setPlaying(false); app.audio.death();
     app.sword.disturb(1.6);
     for (const b of this.bolts.items) if (b.live) { app.fx.sparks.burst(b.pos, b.color, 8, 4, { life: 0.4 }); this.bolts.kill(b); }
@@ -161,9 +165,21 @@ export class Game {
     }
   }
   fireAt(e, ndc, dur, opts = {}) {
+    if (!e.boss) {
+      const asp = this.app.aspect;
+      for (let pass = 0; pass < 4; pass++) {
+        const arr = this.clock + (opts.delay || 0) + dur; let clash = 0;
+        for (const o of this.bolts.incoming) {
+          if (!o.ndc || o.arr === undefined) continue;
+          const far = Math.hypot((o.ndc.x - ndc.x) * asp, o.ndc.y - ndc.y) > 0.3;
+          if (far && Math.abs(arr - o.arr) < 0.5) clash = Math.max(clash, o.arr + 0.55 - arr);
+        }
+        if (clash <= 0) break; dur += clash;
+      }
+    }
     const T = this.app.ndcToWorld(ndc.x, ndc.y, STRIKE_D);
     const b = this.bolts.fire(e, e.muzzleOf(opts.eye || 0).clone(), T, dur, opts);
-    if (b) { b.ndc = ndc; this.app.audio.fire(e.type, this.pan(e)); }
+    if (b) { b.ndc = ndc; b.lock = 0; b.arr = this.clock + (opts.delay || 0) + dur; this.app.audio.fire(e.type, this.pan(e)); }
   }
   pickTarget() {
     const asp = this.app.aspect, mx = asp < 1 ? 0.7 : 0.6;
@@ -218,30 +234,42 @@ export class Game {
   }
 
   // ---------- deflection: the bolt returns if the blade is in its path when it arrives
+  // Deflection is physical: every frame the bolt's own position is tested against the area the blade just swept.
+  // If they meet anywhere within arm's reach, the bolt turns at that exact point. No timing window.
   checkDeflect(rdt) {
     const { app } = this; const H = app.size.h;
     this.real += rdt;
-    const seg = app.bladeScreen(), ptr = { x: app.input.px, y: app.input.py };
-    const last = this.hist[this.hist.length - 1] || seg, pp = this.prevPtr || ptr;
-    const speed = (Math.hypot(seg.bx - last.bx, seg.by - last.by) + Math.hypot(ptr.x - pp.x, ptr.y - pp.y) * 0.5) / H / Math.max(rdt, 1e-3);
+    const seg = app.bladeScreen();
+    const last = this.hist[this.hist.length - 1] || seg;
+    const speed = (Math.hypot(seg.bx - last.bx, seg.by - last.by) + Math.hypot(seg.ax - last.ax, seg.ay - last.ay) * 0.5) / H / Math.max(rdt, 1e-3);
     this.swipe = Math.max(speed, this.swipe * Math.exp(-rdt * 7));
     seg.t = this.real; this.hist.push(seg);
-    while (this.hist.length > 2 && this.real - this.hist[0].t > 0.13) this.hist.shift();   // short memory: an early swing still counts
-    this.prevPtr = ptr;
-    if (!app.sword.canDeflect || this.state !== 'play') return;
+    while (this.hist.length > 2 && this.real - this.hist[0].t > 0.09) this.hist.shift();   // the sweep of the last few frames
+    const live = app.sword.canDeflect && this.state === 'play';
+    let hold = false;
     for (const b of this.bolts.items) {
       if (!b.live || b.state !== 'in' || b.done || b.t < 0) continue;
-      const rem = b.dur - b.t;
-      if (rem > 0.11 || rem < -0.09) continue;                 // only when the bolt has physically reached the blade
-      const q = app.project(b.T);                              // judged at the reticle: what you see is what counts
-      const rad = H * (0.036 * Math.sqrt(b.size) + (app.coarse ? 0.02 : 0)) * (this.tempoLive > 0 ? 1.4 : 1);
+      const rad = H * (0.04 * Math.sqrt(b.size) + (app.coarse ? 0.018 : 0)) * (this.tempoLive > 0 ? 1.4 : 1);
+      // guidance: the ring fills when your blade lies across where the bolt is heading
+      const qt = app.project(b.T);
+      const onRing = live && distPointSeg(qt.x, qt.y, seg.ax, seg.ay, seg.bx, seg.by) <= rad;
+      b.lock = (b.lock || 0) + ((onRing ? 1 : 0) - (b.lock || 0)) * clamp(rdt * 22);
+      if (!live || b.depth > REACH_FAR) continue;
+      // the bolt itself, where it is right now, against the blade and its recent sweep
+      const q = app.project(b.pos), qp = app.project(b.prev);
       let d = 1e9;
       for (let i = 0; i < this.hist.length; i++) {
-        const s = this.hist[i], p = this.hist[Math.max(0, i - 1)];
-        for (let k = 0; k <= 1; k += 0.5) d = Math.min(d, distPointSeg(q.x, q.y, lerp(p.ax, s.ax, k), lerp(p.ay, s.ay, k), lerp(p.bx, s.bx, k), lerp(p.by, s.by, k)));
+        const s2 = this.hist[i], p = this.hist[Math.max(0, i - 1)];
+        for (let k = 0; k <= 1; k += 0.5) {
+          const ax = lerp(p.ax, s2.ax, k), ay = lerp(p.ay, s2.ay, k), bx = lerp(p.bx, s2.bx, k), by = lerp(p.by, s2.by, k);
+          d = Math.min(d, distPointSeg(q.x, q.y, ax, ay, bx, by), distPointSeg((q.x + qp.x) / 2, (q.y + qp.y) / 2, ax, ay, bx, by));
+        }
       }
-      if (d <= rad) this.riposte(b, q, this.swipe > 0.85 || this.tempoLive > 0);
+      if (d <= rad) { this.riposte(b, q, this.swipe > 0.85 || this.tempoLive > 0); continue; }
+      // first run: the very first bolt hangs just short of you until your blade is across it
+      if (this.tut === 1 && b.depth < 1.75) hold = true;
     }
+    if (hold !== this.hold) { this.hold = hold; app.hud.hint(hold ? (app.coarse ? 'Drag your blade across the bolt' : 'Move your blade across the bolt') : null); }
   }
 
   riposte(b, q, strong) {
@@ -253,7 +281,9 @@ export class Game {
     const pts = 50 * mult * (strong ? 2 : 1) + (this.chain > 1 ? 100 * (this.chain - 1) : 0);
     this.addScore(pts);
     app.hud.setCombo(this.combo, mult);
-    if (!this.firstReturn) { this.firstReturn = true; app.hud.hint(null); }
+    // guided first steps: cover one, then swing through one
+    if (this.tut === 1) { this.tut = 2; this.hold = false; app.hud.hint('Good. Now swing through the next one — a hard swing is a riposte'); }
+    else if (this.tut === 2 && strong) { this.tut = 0; app.hud.hint(null); try { localStorage.setItem('riposte.tut', '1'); } catch {} }
     const target = b.enemy.alive ? b.enemy : this.nearest(b.pos);
     const col = sw.color;
     _v.subVectors(b.S, b.T).normalize();
@@ -275,7 +305,9 @@ export class Game {
     app.env.setStreak(this.combo);
     if (target) {
       target.scared = 1; app.audio.chirp('yelp', this.pan(target));
-      this.bolts.send(b, target, col, strong);
+      // the return leaves the blade bent the way you were swinging
+      _v.copy(sw.tipVel); const sp = _v.length(); if (sp > 1e-3) _v.divideScalar(sp).transformDirection(app.camera.matrixWorld).multiplyScalar(clamp(sp * 0.35, 0, 3.2)); else _v.set(0, 0, 0);
+      this.bolts.send(b, target, col, strong, _v);
       if (this.tempoLive > 0) { const other = this.enemies.find((e) => e !== target && e.alive && !e.shielded); if (other) this.bolts.echo(b.pos, other, GOLD); }
     } else this.bolts.kill(b);
     if (this.tempoLive <= 0) {
@@ -325,8 +357,8 @@ export class Game {
     app.fx.debris.burst(p, big ? 60 : 12, big ? 16 : 9, big ? 1.8 : 1);
     app.fx.glows.emit(p, WHITE, 1.2 * s, 0.16, { bright: 3.5 });
     app.fx.glows.emit(p, e.color, 2.8 * s, 0.45, { bright: 1.1 });
-    app.fx.rings.emit(p, e.color, { r0: 0.4, r1: 5.5 * s, life: 0.6, bright: 3.5 });
-    app.fx.rings.emit(_v.set(p.x, 0.03, p.z), e.color, { r0: 0.5, r1: 7 * s, life: 0.9, flat: true, bright: 1.6, thin: 0.03 });
+    app.fx.rings.emit(p, e.color, { r0: 0.4, r1: 3.0 * s, life: 0.55, bright: 3 });
+    app.fx.rings.emit(_v.set(p.x, 0.03, p.z), e.color, { r0: 0.5, r1: 4 * s, life: 0.9, flat: true, bright: 1.4, thin: 0.03 });
     app.env.flash(p, e.color, big ? 22 : 9, big ? 1.0 : 0.5);
     app.env.ripple(p.x, p.z, big ? 2.4 : 1.2);
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, big ? 1.4 : 0.7, 0.8);
@@ -355,6 +387,7 @@ export class Game {
     const { app } = this;
     if (this.state !== 'play' || this.invuln > 0) return;
     this.integrity--; this.combo = 0; this.invuln = 0.9; this.hitFlash = 0.6;
+    if (b && b.T) { const q = app.project(b.T); app.hud.floater(q.x, q.y, 'MISSED'); app.fx.rings.emit(b.T, b.color, { r0: 0.05, r1: 0.5, life: 0.4, bright: 2.5 }); }
     app.hud.setPips(this.integrity); app.hud.setCombo(0, 1); app.sword.setIntegrity(this.integrity);
     app.addTrauma(0.85); app.sword.disturb(1.2); app.audio.hit(); app.feedback('hit');
     app.env.setStreak(0); app.audio.lanterns(); app.env.heart = this.integrity === 1;
@@ -398,6 +431,8 @@ export class Game {
         this.after(rand(4, 6), () => e.alive && e.leave());
       }
     }
+    const sheathed = this.state === 'play' && !this.paused && app.sword.state === 'off';
+    if (sheathed !== this.sheathed) { this.sheathed = sheathed; if (sheathed) app.hud.hint(app.coarse ? 'Blade sheathed — tap to ignite' : 'Blade sheathed — click or press Space'); else if (!this.hold && !this.tut) app.hud.hint(null); }
     for (const e of this.enemies) e.update(gdt, app.time, this);
     if (this.enemies.some((e) => e.gone)) { for (const e of this.enemies) if (e.gone) e.dispose(); this.enemies = this.enemies.filter((e) => !e.gone); }
     this.bolts.update(gdt, this);
@@ -406,13 +441,25 @@ export class Game {
     app.audio.setIntensity(clamp(this.combo / 22 + (this.bout - 1) * 0.1 + (this.tempoLive > 0 ? 0.3 : 0) + (this.cfg.boss ? 0.25 : 0)));
   }
 
-  // debug/attract bot: parks the blade on whichever bolt lands next, swinging through it at the last moment
+  // debug/attract bot. true = perfect; 'human' = reacts late, aims roughly, then holds; 'swing' = slashes through with sloppy timing
   bot() {
+    const mode = this.app.autoplay, inp = this.app.input, dt = 1 / 60;
     const inc = this.bolts.incoming.filter((b) => !b.done && b.t >= 0).sort((a, b) => (a.dur - a.t) - (b.dur - b.t))[0];
-    const inp = this.app.input;
-    if (!inc) { inp.set(Math.sin(this.app.time * 0.7) * 0.2, -0.1 + Math.sin(this.app.time * 0.9) * 0.1); return; }
+    if (!inc) { if (mode === true) inp.set(Math.sin(this.app.time * 0.7) * 0.2, -0.1 + Math.sin(this.app.time * 0.9) * 0.1); return; }
     const rem = inc.dur - inc.t;
-    if (rem > 0.12) inp.set(lerp(inp.ndc.x, inc.ndc.x - 0.2, 0.25), lerp(inp.ndc.y, inc.ndc.y - 0.1, 0.25));
-    else { const s = Math.sin((0.12 - rem) * 30); inp.set(inc.ndc.x - 0.2 + (1 - Math.cos((0.12 - rem) * 30)) * 0.2 + s * 0.02, inc.ndc.y - 0.1 + (1 - Math.cos((0.12 - rem) * 30)) * 0.1); }
+    if (mode === 'human') {
+      if (inc._e === undefined) { inc._e = { x: rand(-0.035, 0.035), y: rand(-0.045, 0.045), react: rand(0.75, 1.0) }; }
+      if (rem > inc._e.react) return;                          // has not noticed it yet
+      const tx = inc.ndc.x + inc._e.x, ty = inc.ndc.y + inc._e.y, dx = tx - inp.ndc.x, dy = ty - inp.ndc.y, d = Math.hypot(dx, dy), sp = 3.2 * dt;
+      inp.set(inp.ndc.x + (d > sp ? dx / d * sp : dx), inp.ndc.y + (d > sp ? dy / d * sp : dy));
+    } else if (mode === 'swing') {
+      if (inc._s === undefined) inc._s = { at: rand(0.02, 0.2), a: rand(0, 6.28) };
+      const ox = Math.cos(inc._s.a) * 0.3, oy = Math.sin(inc._s.a) * 0.22, k = clamp((inc._s.at + 0.12 - rem) / 0.12);
+      if (rem > inc._s.at + 0.12) inp.set(lerp(inp.ndc.x, inc.ndc.x - ox, 0.2), lerp(inp.ndc.y, inc.ndc.y - oy, 0.2));
+      else inp.set(inc.ndc.x - ox + 2 * ox * k, inc.ndc.y - oy + 2 * oy * k);
+    } else {
+      if (rem > 0.12) inp.set(lerp(inp.ndc.x, inc.ndc.x - 0.2, 0.25), lerp(inp.ndc.y, inc.ndc.y - 0.1, 0.25));
+      else { const c = 1 - Math.cos((0.12 - rem) * 30); inp.set(inc.ndc.x - 0.2 + c * 0.2, inc.ndc.y - 0.1 + c * 0.1); }
+    }
   }
 }

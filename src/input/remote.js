@@ -19,7 +19,7 @@ export class Remote {
       c.on('open', () => { this.active = true; this.onStatus('Phone connected. Point it at the screen and tap Recenter.', true); this.send({ t: 'hello', color: this.app.sword.colorName }); });
       c.on('data', (m) => {
         if (!m || typeof m !== 'object') return;
-        if (m.t === 'o' && Number.isFinite(m.x) && Number.isFinite(m.y)) this.app.input.set(m.x, m.y);
+        if (m.t === 'o' && Number.isFinite(m.x) && Number.isFinite(m.y)) { this.app.input.set(m.x, m.y); if (Number.isFinite(m.r)) { this.app.input.roll = m.r; this.app.input.rollT = this.app.time; } }
         else if (m.t === 'b' && typeof m.k === 'string') this.onButton(m.k);
       });
       c.on('close', () => { this.active = false; this.conn = null; this.onStatus('Phone disconnected. Scan again to rejoin.'); });

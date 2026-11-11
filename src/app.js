@@ -42,9 +42,9 @@ const app = {
   renderer, scene, camera, camRig, timeU, coarse,
   time: 0, size: { w: 1, h: 1 }, aspect: 1, pose: 'title', autoplay: false,
   camPos: new THREE.Vector3(0, 1.55, 0),
-  trauma: 0, kickV: 0, fovPunch: 0, quality: 1,
+  trauma: 0, kickV: 0, fovPunch: 0, quality: 1, hand: { on: false, x: 0, y: 0 },
   input: {
-    ndc: { x: 0.12, y: -0.05 }, px: 0, py: 0, moved: false,
+    ndc: { x: 0.12, y: -0.05 }, px: 0, py: 0, moved: false, roll: 0, rollT: -9,
     set(nx, ny) { this.ndc.x = clamp(nx, -1.1, 1.1); this.ndc.y = clamp(ny, -1.1, 1.1); this.px = (this.ndc.x * 0.5 + 0.5) * app.size.w; this.py = (0.5 - this.ndc.y * 0.5) * app.size.h; },
   },
   addTrauma(x) { this.trauma = Math.min(1, this.trauma + x); },
@@ -57,6 +57,8 @@ const app = {
     _p.copy(p).project(camera);
     return { x: (_p.x * 0.5 + 0.5) * this.size.w, y: (0.5 - _p.y * 0.5) * this.size.h, nx: _p.x, ny: _p.y };
   },
+  // distance in front of the camera
+  depth(p) { return -_p.copy(p).applyMatrix4(camera.matrixWorldInverse).z; },
   bladeScreen() {
     const s = this.sword;
     _a.lerpVectors(s.A, s.Bfull, 0.14); const a = this.project(_a), b = this.project(s.Bfull);
@@ -112,7 +114,11 @@ async function enableMotion() {
         // tilt-to-aim: the phone is the hilt. ±20° of roll and pitch sweep the whole screen
         app.input.set(clamp((e.gamma - motion.g0) / 20, -1.1, 1.1), clamp(-(e.beta - motion.b0) / 18, -1.1, 1.1));
         motion.tx = motion.ty = 0;
-      } else { motion.tx = clamp(e.gamma / 30, -1, 1); motion.ty = clamp((e.beta - motion.b0) / 30, -1, 1); }
+      } else {
+        motion.gl = motion.gl ?? e.gamma; motion.bl = motion.bl ?? e.beta;
+        motion.gl += (e.gamma - motion.gl) * 0.012; motion.bl += (e.beta - motion.bl) * 0.012;      // baseline follows your grip
+        motion.tx = clamp((e.gamma - motion.gl) / 18, -1, 1); motion.ty = clamp((e.beta - motion.bl) / 18, -1, 1);
+      }
     });
     motion.on = true;
     return true;
@@ -199,10 +205,13 @@ function pointer(e) {
   app.input.set(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
   app.input.moved = true; pads.active = false;
 }
-canvas.addEventListener('pointermove', (e) => { for (const c of e.getCoalescedEvents ? e.getCoalescedEvents() : [e]) pointer(c); });
+// some browsers hand back an empty coalesced list; never drop the move itself
+canvas.addEventListener('pointermove', (e) => { const list = e.getCoalescedEvents ? e.getCoalescedEvents() : null; if (list && list.length) for (const c of list) pointer(c); else pointer(e); });
 canvas.addEventListener('pointerdown', (e) => {
   app.audio.unlock();
   pointer(e);
+  // a sheathed blade in the middle of a bout is almost always an accident: any click or tap lights it again
+  if (app.game.state === 'play' && !app.game.paused && app.sword.state === 'off') app.sword.ignite();
   try { canvas.setPointerCapture(e.pointerId); } catch {}
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -265,15 +274,24 @@ function poseTargets(dt) {
     _r.set(portrait ? 0.12 : 0.36, -0.52, -1.15); _d.set(-0.42, 0.42, -0.80).normalize();
     _r.y += sway(2) * 0.03; _d.x += sway(3) * 0.05;
   } else {
-    // play: the pointer rides the middle of the blade; the sword pivots from a point below the view
-    const D = 1.5, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D;
+    // play: your pointer is the blade; the hilt is towed behind it. Move sideways and the blade lies flat,
+    // cut down and it tips over, circle and it spins. Hold still and it keeps the guard you left it in.
+    const D = 1.5, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D, R = 0.31;
+    const hand = app.hand;
+    if (!hand.on) { hand.on = true; hand.x = px; hand.y = py - R; }
+    if (app.input.rollT > t - 0.4) {
+      // gyro (phone as saber, DualSense): the blade takes the device's real roll
+      const ang = app.input.roll; hand.x = px - Math.sin(ang) * R; hand.y = py - Math.cos(ang) * R;
+    } else {
+      let dx = px - hand.x, dy = py - hand.y; const dd = Math.hypot(dx, dy);
+      if (dd > 1e-5) { hand.x = px - dx / dd * R; hand.y = py - dy / dd * R; }
+    }
     _t.set(px, py, -D);
-    _a.set(px * 0.30, -1.5, -0.28);
-    _d.subVectors(_t, _a).normalize();
-    // mouse: the cursor rides the lower blade. touch: the finger IS the hand, so the whole sword sits above it
-    _r.copy(_t).addScaledVector(_d, -0.30 * BLADE_LEN);     // the pointer (or your finger) rides the lower blade
-    _r.x += sway(1) * 0.012; _r.y += sway(2) * 0.012;
+    _d.set((px - hand.x) / R, (py - hand.y) / R, -0.42).normalize();
+    _r.copy(_t).addScaledVector(_d, -0.30 * BLADE_LEN);
+    _r.x += sway(1) * 0.01; _r.y += sway(2) * 0.01;
   }
+  if (app.pose !== 'play') app.hand.on = false;
   _d.normalize();
   _t.copy(_r).addScaledVector(_d, BLADE_LEN);
   s.setTargets(_r, _t);

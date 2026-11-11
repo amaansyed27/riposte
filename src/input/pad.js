@@ -31,7 +31,9 @@ export async function runPad(hostId) {
     </div>`;
   document.body.appendChild(root);
   const $ = (id) => document.getElementById(id), state = (t) => ($('padState').textContent = t);
-  let conn = null, a0 = null, b0 = null, last = { a: 0, b: 0 }, lastSend = 0;
+  let conn = null, a0 = null, b0 = null, last = { a: 0, b: 0 }, lastSend = 0, roll = 0, roll0 = 0;
+  // roll in the screen plane, read from gravity; folded so it is the same whichever sign convention the phone uses
+  const onMotion = (e) => { const g = e.accelerationIncludingGravity; if (!g || g.x == null) return; let a = Math.atan2(g.x, g.y); if (a > Math.PI / 2) a -= Math.PI; else if (a < -Math.PI / 2) a += Math.PI; roll += (a - roll) * 0.35; };
 
   const send = (m) => { if (conn && conn.open) conn.send(m); };
   const onOrient = (e) => {
@@ -40,13 +42,13 @@ export async function runPad(hostId) {
     if (a0 == null) { a0 = e.alpha; b0 = e.beta; }
     const now = performance.now(); if (now - lastSend < 14) return; lastSend = now;
     // yaw sweeps left/right, tilt sweeps up/down; ±24° covers the whole screen
-    send({ t: 'o', x: Math.max(-1.15, Math.min(1.15, -wrap(e.alpha - a0) / 24)), y: Math.max(-1.15, Math.min(1.15, (e.beta - b0) / 20)) });
+    send({ t: 'o', x: Math.max(-1.15, Math.min(1.15, -wrap(e.alpha - a0) / 24)), y: Math.max(-1.15, Math.min(1.15, (e.beta - b0) / 20)), r: -(roll - roll0) * 1.6 });
   };
   const controls = () => {
     $('padHelp').textContent = 'Point at the screen and tap Recenter. Then swing.';
     document.querySelector('#pad .btns').innerHTML = `<button id="pGo" class="primary">Confirm / Ignite</button><button id="pCenter">Recenter</button><button id="pPause">Pause</button>`;
     $('pGo').onclick = () => { send({ t: 'b', k: 'confirm' }); if (navigator.vibrate) navigator.vibrate(12); };
-    $('pCenter').onclick = () => { a0 = last.a; b0 = last.b; if (navigator.vibrate) navigator.vibrate(8); };
+    $('pCenter').onclick = () => { a0 = last.a; b0 = last.b; roll0 = roll; if (navigator.vibrate) navigator.vibrate(8); };
     $('pPause').onclick = () => send({ t: 'b', k: 'pause' });
   };
 
@@ -57,7 +59,8 @@ export async function runPad(hostId) {
         const r = await DeviceOrientationEvent.requestPermission();
         if (r !== 'granted') { state('Motion access denied'); return; }
       }
-      addEventListener('deviceorientation', onOrient);
+      if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission) { try { await DeviceMotionEvent.requestPermission(); } catch {} }
+      addEventListener('deviceorientation', onOrient); addEventListener('devicemotion', onMotion);
       state('Connecting…');
       const { Peer } = await import('peerjs');
       const peer = new Peer();

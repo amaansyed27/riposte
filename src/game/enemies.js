@@ -189,7 +189,7 @@ export class Enemy {
     this.dartClock -= dt;
     if (this.dartClock <= 0 && this.state === 'idle') {
       this.dartClock = rand(1.2, 2.8);
-      const k = (this.boss ? 0.6 : 1.3) * Math.min(1, this.app.aspect * 0.9); this.dartT.set(rand(-k, k), rand(-k * 0.6, k * 0.6), rand(-0.6, 0.6));
+      const k = (this.boss ? 0.5 : 0.75) * Math.min(1, this.app.aspect * 0.9); this.dartT.set(rand(-k, k), rand(-k * 0.6, k * 0.6), rand(-0.6, 0.6));
     }
     this.dart.lerp(this.dartT, clamp(dt * 7));
     this.scared = Math.max(0, this.scared - dt * 1.4); this.gloat = Math.max(0, this.gloat - dt * 0.9);

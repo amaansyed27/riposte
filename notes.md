@@ -55,3 +55,11 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Phone: Aim touch/tilt toggle on the blade page. Desktop: "Use your phone as the saber" pairs a phone by QR.
 - Live: https://riposte-iota.vercel.app
 - Open: a third critic round has not been run; real phone, gamepad, DualSense and audio remain untested.
+
+## Play v3 (owner feedback: blade only stood up; a blade in the right place did not always repel)
+- Blade angle comes from motion: the pointer is a point on the blade and the hilt is towed behind it (a tractrix), so a sideways move lays it flat, a downward cut tips it over, a circle spins it, and at rest it keeps its guard. Phone-as-saber and DualSense send real roll and override this.
+- Deflection is physical: each frame the bolt's own screen position is tested against the area the blade swept in the last 0.09 s, while the bolt is between 3.6 m and 0.75 m from the camera. No timing window. The ring is guidance only and fills in your colour when the blade lies across it.
+- Returned bolts leave the contact point on a curve bent by the swing, then home on the shooter.
+- Two bolts from different orbs never arrive within 0.5 s of each other on opposite sides. First run: the first bolt hangs short of you until your blade is across it.
+- Input bug: pointermove was dropped when getCoalescedEvents() returned an empty list.
+- Test players: R.autoplay(true | 'human' | 'swing'). Phone roll sign and DualSense roll are untested on hardware.
