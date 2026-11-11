@@ -13,6 +13,7 @@ import { Remote } from './input/remote.js';
 import '@fontsource/orbitron/500.css';
 import '@fontsource/orbitron/700.css';
 import '@fontsource/orbitron/900.css';
+import '@fontsource/archivo-black/400.css';
 import { clamp, damp, lerp, noise1, isTouch } from './core/util.js';
 
 const canvas = document.getElementById('gl');
@@ -102,15 +103,20 @@ app.feedback = (k) => {
   remote.send({ t: 'f', k });
 };
 // device tilt leans the camera (phones); needs a tap to grant on iOS
-const motion = { on: false, x: 0, y: 0, tx: 0, ty: 0, b0: null };
+const motion = { on: false, x: 0, y: 0, tx: 0, ty: 0, b0: null, g0: null, aim: false, raw: { b: 0, g: 0 } };
 async function enableMotion() {
   try {
     if (typeof DeviceOrientationEvent === 'undefined') throw new Error('No motion sensor here');
     if (DeviceOrientationEvent.requestPermission && (await DeviceOrientationEvent.requestPermission()) !== 'granted') throw new Error('Permission denied');
     if (!motion.on) addEventListener('deviceorientation', (e) => {
       if (e.gamma == null) return;
-      if (motion.b0 == null) motion.b0 = e.beta;
-      motion.tx = clamp(e.gamma / 30, -1, 1); motion.ty = clamp((e.beta - motion.b0) / 30, -1, 1);
+      motion.raw.b = e.beta; motion.raw.g = e.gamma;
+      if (motion.b0 == null) { motion.b0 = e.beta; motion.g0 = e.gamma; }
+      if (motion.aim) {
+        // tilt-to-aim: the phone is the hilt. ±20° of roll and pitch sweep the whole screen
+        app.input.set(clamp((e.gamma - motion.g0) / 20, -1.1, 1.1), clamp(-(e.beta - motion.b0) / 18, -1.1, 1.1));
+        motion.tx = motion.ty = 0;
+      } else { motion.tx = clamp(e.gamma / 30, -1, 1); motion.ty = clamp((e.beta - motion.b0) / 30, -1, 1); }
     });
     motion.on = true;
     return true;
@@ -175,12 +181,20 @@ $('btnPhone').addEventListener('click', async () => {
 $('btnGyro').addEventListener('click', async (e) => {
   try { e.target.textContent = await pads.enableGyro(); e.target.disabled = true; } catch (err) { e.target.textContent = 'Unavailable'; $('gyroRow').querySelector('span').textContent = err.message || String(err); }
 });
-$('btnMotion').addEventListener('click', async (e) => { const r = await enableMotion(); e.target.textContent = r === true ? 'On' : r; });
+async function setAim(tilt) {
+  if (tilt) { const r = await enableMotion(); if (r !== true) { $('btnAim').textContent = 'Tilt unavailable: ' + r; $('btnMotion').textContent = r; return; } motion.b0 = motion.raw.b; motion.g0 = motion.raw.g; }
+  motion.aim = tilt; $('btnAim').textContent = tilt ? 'Aim: tilt (tap to recentre / switch)' : 'Aim: touch'; $('btnMotion').textContent = tilt ? 'On' : 'Enable';
+  try { localStorage.setItem('riposte.aim', tilt ? 'tilt' : 'touch'); } catch {}
+}
+$('btnMotion').addEventListener('click', () => setAim(!motion.aim));
+$('btnAim').addEventListener('click', () => setAim(!motion.aim));
+$('btnSaber').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); $('btnPhone').click(); });
 if (!navigator.hid) $('gyroRow').classList.add('hidden');
 if (!coarse) $('motionRow').classList.add('hidden');
 
 // ---------- input
 function pointer(e) {
+  if (motion.aim && e.pointerType !== 'mouse') { if (e.type === 'pointerdown') { motion.b0 = motion.raw.b; motion.g0 = motion.raw.g; } return; }   // tilt mode: a tap recentres
   const r = canvas.getBoundingClientRect();
   app.input.set(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
   app.input.moved = true; pads.active = false;

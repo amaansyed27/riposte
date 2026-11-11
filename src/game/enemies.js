@@ -53,6 +53,10 @@ function assets() {
     petal: new THREE.SphereGeometry(1.2, 18, 14, 0, 1.5, 0.55, 2.0),
     shell: new THREE.IcosahedronGeometry(1.16, 1),
     gun: new THREE.CylinderGeometry(0.10, 0.15, 0.9, 10),
+    lid: new THREE.SphereGeometry(0.335, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+    lidMat: new THREE.MeshStandardMaterial({ color: 0x20242b, metalness: 0.85, roughness: 0.4, envMapIntensity: 1.0, side: THREE.DoubleSide }),
+    pupil: new THREE.SphereGeometry(0.085, 12, 10),
+    pupilMat: new THREE.MeshBasicMaterial({ color: 0x050608 }),
     tailSeg: new THREE.SphereGeometry(1, 12, 8),
     spike: new THREE.ConeGeometry(0.2, 1.1, 5),
     limb: new THREE.CylinderGeometry(0.07, 0.11, 1, 8),
@@ -86,7 +90,8 @@ export class Enemy {
     this.state = 'enter'; this.t = 0; this.chargeK = 0; this.cool = rand(0.5, 1.2); this.flinch = 0; this.spin = rand(0.6, 1.4);
     this.pos = new THREE.Vector3(); this.from = new THREE.Vector3(); this.slot = new THREE.Vector3();
     this.dart = new THREE.Vector3(); this.dartT = new THREE.Vector3(); this.dartClock = rand(1, 2.5);
-    this.seed = rand(0, 100); this._m = new THREE.Vector3();
+    this.seed = rand(0, 100); this._m = new THREE.Vector3(); this._l = new THREE.Vector3();
+    this.lid = 0; this.blink = rand(1, 4); this.scared = 0; this.gloat = 0; this.gone = false;
     const g = (this.group = new THREE.Group());
     this.eyeMat = new THREE.MeshBasicMaterial({ color: T.color.clone().multiplyScalar(3), fog: false });
     this.lensMat = new THREE.MeshBasicMaterial({ color: T.color.clone().multiplyScalar(1.2), fog: false });
@@ -109,11 +114,14 @@ export class Enemy {
         const l = new THREE.Mesh(A.lens, this.lensMat); l.position.copy(d).multiplyScalar(1.07); o.add(l);
       }
       for (const sx of [-1, 1]) { const rod = new THREE.Mesh(A.rod, A.dark); rod.position.set(sx * 0.45, 1.05, -0.2); rod.rotation.z = -sx * 0.35; o.add(rod); }
-      const rim = new THREE.Mesh(A.eyeRim, A.dark); rim.position.z = 0.95; o.add(rim);
-      const e = new THREE.Mesh(A.eye, this.eyeMat); e.position.z = 0.9; e.scale.set(1, 1, 0.55); o.add(e);
+      const rim = new THREE.Mesh(A.eyeRim, A.dark); rim.position.z = 0.93; rim.scale.setScalar(1.42); o.add(rim);
+      const e = new THREE.Mesh(A.eye, this.eyeMat); e.position.z = 0.86; e.scale.set(1.5, 1.5, 0.7); o.add(e);
+      const pupil = new THREE.Mesh(A.pupil, A.pupilMat); pupil.position.z = 0.995; pupil.scale.set(1, 1, 0.4); o.add(pupil);
+      const lidU = new THREE.Mesh(A.lid, A.lidMat); lidU.position.z = 0.86; lidU.scale.set(1, 1, 0.8); o.add(lidU);
+      const lidL = new THREE.Mesh(A.lid, A.lidMat); lidL.position.z = 0.86; lidL.scale.set(1, -1, 0.8); o.add(lidL);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: A.glowTex, color: T.color.clone(), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
       sp.position.z = 1.05; o.add(sp);
-      this.eyes.push({ e, sp, s: 1 });
+      this.eyes.push({ e, sp, s: 1, pupil, lidU, lidL });
       return o;
     };
     const ring = (parent, r, ax, az) => { const m = new THREE.Mesh(A.ring, this.trim); m.scale.setScalar(r); m.rotation.set(ax, 0, az); parent.add(m); this.rings.push(m); return m; };
@@ -173,6 +181,9 @@ export class Enemy {
     if (this.state === 'enter') {
       this.pos.lerpVectors(this.from, this.slot, easeOutCubic(this.t / 1.5));
       if (this.t >= 1.5) { this.state = 'idle'; this.t = 0; }
+    } else if (this.state === 'leave') {
+      const k = clamp(this.t / 1.6); this.pos.lerpVectors(this.from, this.slot, k * k * k);
+      if (k >= 1) this.gone = true;
     } else this.pos.copy(this.slot);
     // the orb never sits still: it darts a short way, hovers, darts again
     this.dartClock -= dt;
@@ -181,9 +192,12 @@ export class Enemy {
       const k = (this.boss ? 0.6 : 1.3) * Math.min(1, this.app.aspect * 0.9); this.dartT.set(rand(-k, k), rand(-k * 0.6, k * 0.6), rand(-0.6, 0.6));
     }
     this.dart.lerp(this.dartT, clamp(dt * 7));
-    const bob = this.boss ? 0.35 : 0.16;
+    this.scared = Math.max(0, this.scared - dt * 1.4); this.gloat = Math.max(0, this.gloat - dt * 0.9);
+    const bob = (this.boss ? 0.35 : 0.16) + this.gloat * 0.35;
     g.position.set(this.pos.x + this.dart.x + Math.sin(time * 0.9 + this.seed) * bob, Math.max(1.0, this.pos.y + this.dart.y + Math.sin(time * 1.3 + this.seed * 2) * bob), this.pos.z + this.dart.z);
+    g.position.x += Math.sin(time * 47 + this.seed) * 0.07 * this.scared; g.position.y += Math.abs(Math.sin(time * 9)) * 0.5 * this.gloat;
     g.lookAt(this.app.camPos);
+    if (this.state === 'enter') g.rotateZ((1 - easeOutCubic(this.t / 1.5)) * 5);   // arrives with a barrel roll
     this.flinch = Math.max(0, this.flinch - dt * 3);
     if (this.flinch > 0) { g.rotateZ(Math.sin(time * 60) * 0.25 * this.flinch); g.position.z -= this.flinch * 1.2; }
 
@@ -207,7 +221,14 @@ export class Enemy {
     for (const { sp: s, s: sc } of this.eyes) { s.scale.setScalar(sc * (0.9 + ck * 1.2) * pulse); s.material.color.copy(this.color).multiplyScalar(0.5 + ck * 1.0); }
     if (this.shield) { const u = this.shield.material.uniforms; u.uTime.value = time; u.uHit.value = Math.max(0, u.uHit.value - dt * 3); if (this.type === 'hydra') this.shield.visible = this.shielded; }
     if (this.seams) this.seams.material.color.copy(this.color).multiplyScalar(1.5 + ck * 4 + this.flinch * 5);
-    for (const { w, sx } of this.wings) { w.rotation.z = sx * (0.18 + 0.22 * Math.sin(time * 3.2 + this.seed) + ck * 0.5); w.rotation.y = sx * (0.5 + ck * 0.35); }
+    // the eye: blinks, squints while charging, goes wide when its own bolt is coming back, follows your blade
+    this.blink -= dt; if (this.blink <= 0) this.blink = rand(1.6, 5);
+    const open = this.flinch > 0.4 ? 0.12 : this.scared > 0.05 ? 1.25 : this.blink < 0.11 ? 0.05 : this.state === 'charge' ? 0.5 : this.gloat > 0.05 ? 0.6 : 0.92;
+    this.lid += (open - this.lid) * clamp(dt * 22);
+    this._l.copy(this.app.sword.Bfull); g.worldToLocal(this._l);
+    const lz = Math.max(this._l.z, 1), lx = clamp(this._l.x / lz * 1.6, -1, 1) * 0.15, ly = clamp(this._l.y / lz * 1.6, -1, 1) * 0.13;
+    for (const ey of this.eyes) if (ey.pupil) { ey.lidU.rotation.x = -this.lid * 1.25; ey.lidL.rotation.x = this.lid * 1.25; ey.pupil.position.x += (lx + (this.scared ? Math.sin(time * 60) * 0.03 : 0) - ey.pupil.position.x) * clamp(dt * 12); ey.pupil.position.y += (ly - ey.pupil.position.y) * clamp(dt * 12); ey.pupil.scale.setScalar(this.scared > 0.05 ? 0.6 : 1 + ck * 0.5); ey.pupil.scale.z = 0.4; }
+    for (const { w, sx } of this.wings) { w.rotation.z = sx * (0.18 + 0.22 * Math.sin(time * (3.2 + this.scared * 30 + this.gloat * 10) + this.seed) + ck * 0.5); w.rotation.y = sx * (0.5 + ck * 0.35); }
     for (const gun of this.guns) gun.position.z = 0.6 + Math.min(ck, 1) * 0.12 - Math.max(0, ck - 1) * 1.6;
     for (const a of this.arms) { a.up.rotation.z = -a.sx * (1.0 + Math.sin(time * (1.6 + ck * 5) + a.ph) * 0.55); a.up.rotation.x = Math.sin(time * 1.3 + a.ph) * 0.4; a.fore.rotation.z = -a.sx * (0.5 + Math.sin(time * (2.3 + ck * 6) + a.ph * 2) * 0.6); }
     g.updateMatrixWorld(true);
@@ -224,6 +245,7 @@ export class Enemy {
     }
     if (ck > 0.05) this.app.env.light(this.muzzle.clone(), this.color, ck * 1.2);
   }
+  leave() { this.state = 'leave'; this.t = 0; this.from.copy(this.pos); this.slot.set(this.pos.x * 3 + rand(-8, 8), this.pos.y + rand(14, 24), this.pos.z - 50); }
   // bind this orb to a boss with a visible energy leash
   leashTo(boss) { this.tetherTo = boss; this.leash = makeBeam({ width: 0.16, core: 0.014, timeUniform: this.app.timeU }); this.leash.material.uniforms.uColor.value.copy(boss.color); this.app.scene.add(this.leash); this.extras.push(this.leash); }
 

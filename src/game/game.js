@@ -56,7 +56,7 @@ export class Game {
   // ---------- flow
   start() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'starting';
+    this.clearField(); this.reset(); this.state = 'starting'; app.env.setStreak(0); app.env.setMood(null);
     app.hud.screen(null);
     app.hud.setScore(0); app.hud.setCombo(0, 1); app.hud.setPips(3); app.hud.setTempo(0, false); app.hud.boss(null);
     app.sword.setIntegrity(3); app.sword.overTarget = 0;
@@ -66,7 +66,7 @@ export class Game {
   }
   home() {
     const { app } = this;
-    this.clearField(); this.reset(); this.state = 'menu';
+    this.clearField(); this.reset(); this.state = 'menu'; this.visitT = 5; app.env.setStreak(0); app.env.setMood(null);
     app.audio.setPlaying(false); app.sword.overTarget = 0; app.sword.retract();
     app.hud.showHud(false); app.hud.boss(null); app.hud.hint(null); app.hud.screen('intro'); app.pose = 'away';
   }
@@ -78,10 +78,11 @@ export class Game {
     const name = boss ? `${TYPES[boss].name}${this.cfg.tier ? ' ' + ROMAN(this.cfg.tier + 1) : ''}` : null;
     app.hud.setBout(n); app.hud.banner(boss ? 'A master approaches' : 'En garde', boss ? name.toUpperCase() : `BOUT ${ROMAN(n)}`, this.cfg.sub, 2300);
     app.audio.stinger(n); app.audio.setPlaying(true);
+    app.env.setMood(boss ? TYPES[boss].color : null);
   }
   endBout() {
     const { app } = this;
-    this.state = 'intermission'; this.boss = null; app.hud.boss(null);
+    this.state = 'intermission'; this.boss = null; app.hud.boss(null); app.env.setMood(null); app.env.courtPulse(0, 0, 1.4);
     this.after(1.0, () => { app.sword.retract(); app.pose = 'rest'; app.audio.setPlaying(false); });
     this.after(1.3, () => {
       const heal = this.integrity < 3;
@@ -132,6 +133,7 @@ export class Game {
     e.aim = this.pickTarget();
     e.aimW = this.app.ndcToWorld(e.aim.x, e.aim.y, STRIKE_D);
     this.app.audio.charge(this.pan(e));
+    if (e.type === 'maestro') this.app.audio.chirp('tap', 0);
   }
   onFire(e) {
     const d = this.cfg.dur, a = e.aim || this.pickTarget(), asp = this.app.aspect, sx = Math.min(1, asp);
@@ -190,6 +192,7 @@ export class Game {
       const w = app.ndcToWorld(s.x, s.y, s.z); w.y = Math.max(w.y, 1.5); e.place(w);
     }
     this.enemies.push(e);
+    app.audio.chirp('hello', this.pan(e));
     return e;
   }
   leashes(boss) {
@@ -257,7 +260,7 @@ export class Game {
     app.fx.sparks.burst(b.pos, _c.copy(col).lerp(WHITE, 0.5), strong ? 46 : 22, strong ? 11 : 7, { dir: _v, spread: 0.8, life: 0.5, bright: strong ? 6 : 4 });
     app.fx.sparks.burst(b.pos, b.color, 10, 5, { life: 0.3, bright: 3 });
     app.fx.glows.emit(b.pos, WHITE, strong ? 0.16 : 0.11, 0.1, { bright: strong ? 4 : 3 });
-    app.fx.glows.emit(b.pos, col, strong ? 0.36 : 0.24, 0.22, { bright: 1.1 });
+    app.fx.glows.emit(b.pos, col, strong ? 0.2 : 0.14, 0.2, { bright: 1.0 });
     app.fx.rings.emit(b.pos, strong ? GOLD : col, { r0: 0.06, r1: strong ? 0.5 : 0.3, life: 0.26, bright: strong ? 2.6 : 1.8 });
     app.env.flash(b.pos, col, strong ? 2.4 : 1.5, 0.3);
     app.post.shock(q.x / app.size.w, 1 - q.y / app.size.h, strong ? 0.7 : 0.3, 1.1);
@@ -269,7 +272,9 @@ export class Game {
     else if (strong) app.hud.callout('RIPOSTE', true);
     else if (this.combo % 10 === 0) app.hud.callout(`${this.combo} RETURNED`);
     app.hud.floater(q.x, q.y - 26, `+${pts}`, strong);
+    app.env.setStreak(this.combo);
     if (target) {
+      target.scared = 1; app.audio.chirp('yelp', this.pan(target));
       this.bolts.send(b, target, col, strong);
       if (this.tempoLive > 0) { const other = this.enemies.find((e) => e !== target && e.alive && !e.shielded); if (other) this.bolts.echo(b.pos, other, GOLD); }
     } else this.bolts.kill(b);
@@ -351,6 +356,9 @@ export class Game {
     this.integrity--; this.combo = 0; this.invuln = 0.9; this.hitFlash = 0.6;
     app.hud.setPips(this.integrity); app.hud.setCombo(0, 1); app.sword.setIntegrity(this.integrity);
     app.addTrauma(0.85); app.sword.disturb(1.2); app.audio.hit(); app.feedback('hit');
+    app.env.setStreak(0); app.audio.lanterns();
+    for (const e of this.enemies) e.gloat = 1;
+    this.after(0.35, () => app.audio.chirp('laugh', 0));
     app.post.shock(0.5, 0.5, 0.6, 1.4);
     if (this.integrity <= 0) this.die(); else app.hud.callout(this.integrity === 1 ? 'LAST GUARD' : 'TOUCHED');
   }
@@ -377,7 +385,17 @@ export class Game {
         if (this.tempoLive <= 0) { app.sword.overTarget = 0; app.audio.tempo(false); app.hud.setTempo(0, false); }
       }
     }
+    // on the menus a curious Remote drifts in, looks you over, and leaves
+    if (this.state === 'menu') {
+      this.visitT = (this.visitT ?? 4) - rdt;
+      if (this.visitT <= 0 && !this.enemies.length) {
+        this.visitT = rand(9, 15);
+        const e = this.spawn('wisp', { x: rand(-0.55, 0.55) * Math.min(1, app.aspect), y: rand(0.05, 0.3), z: rand(5.5, 8) });
+        this.after(rand(4, 6), () => e.alive && e.leave());
+      }
+    }
     for (const e of this.enemies) e.update(gdt, app.time, this);
+    if (this.enemies.some((e) => e.gone)) { for (const e of this.enemies) if (e.gone) e.dispose(); this.enemies = this.enemies.filter((e) => !e.gone); }
     this.bolts.update(gdt, this);
     this.checkDeflect(rdt);
     if (app.autoplay) this.bot();

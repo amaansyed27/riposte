@@ -29,8 +29,9 @@ export class Environment {
       uFogDen: { value: 0.017 },
       uFlash: { value: 0 },
       uEclipse: { value: ECLIPSE_DIR },
+      uCC: { value: new THREE.Color(1.0, 0.86, 0.72) },
     };
-    this.ripIdx = 0;
+    this.ripIdx = 0; this.lanterns = []; this.streak = 0; this.mood = new THREE.Color(1.0, 0.86, 0.72); this.gather = 0;
     this.pulse = { r: 0, s: 0 };
     this.flashes = [];
     this.frameLights = [];
@@ -39,6 +40,7 @@ export class Environment {
     this._floor(reflRes);
     this._colonnade();
     this._rain(rainCount);
+    this._moths();
     this._lights();
     this.lightningT = rand(5, 9);
     this.lightningSeq = [];
@@ -48,10 +50,10 @@ export class Environment {
   _sky() {
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { uTime: this.u.uTime, uFlash: this.u.uFlash, uE: this.u.uEclipse },
+      uniforms: { uTime: this.u.uTime, uFlash: this.u.uFlash, uE: this.u.uEclipse, uCC: this.u.uCC },
       vertexShader: /* glsl */ `varying vec3 vDir; void main(){ vDir = position; vec4 p = projectionMatrix*viewMatrix*vec4(position + cameraPosition,1.0); gl_Position = p.xyww; }`,
       fragmentShader: /* glsl */ `
-        uniform float uTime,uFlash; uniform vec3 uE; varying vec3 vDir;
+        uniform float uTime,uFlash; uniform vec3 uE, uCC; varying vec3 vDir;
         ${GLSL_NOISE}
         void main(){
           vec3 d = normalize(vDir);
@@ -66,7 +68,7 @@ export class Environment {
           float az = atan(dot(d,up), dot(d,rt));
           float rays = 0.55 + 0.45*vnoise(vec2(az*5.0, 1.7)) + 0.35*vnoise(vec2(az*17.0 + uTime*0.05, 4.2));
           float o = max(ang - R, 0.0);
-          vec3 cc = vec3(1.0, 0.86, 0.72);
+          vec3 cc = uCC;
           float corona = exp(-o*7.0)*0.07*rays + exp(-o*30.0)*0.40*rays + exp(-o*120.0)*0.9;
           float disc = smoothstep(R + 0.002, R - 0.002, ang);
           col += cc * corona * (1.0 - disc);
@@ -222,7 +224,7 @@ export class Environment {
         m.rotation.y = rand(-0.12, 0.12); m.rotation.z = rand(-0.02, 0.02);
         g.add(m);
         const cap = new THREE.Mesh(capG, stone); cap.scale.set(w, w * 1.3, w * 0.8); cap.position.set(x, h - 0.2 + w * 0.65, z); cap.rotation.y = m.rotation.y; g.add(cap);
-        const strip = new THREE.Mesh(box, this.glyphMat);
+        const strip = new THREE.Mesh(box, new THREE.MeshBasicMaterial({ color: 0x000000, fog: true })); this.lanterns.push({ m: strip.material, k: 0 });
         strip.scale.set(0.05, h * 0.55, 0.05);
         strip.position.set(x - s * (w * 0.43 + 0.03), h * 0.42, z);
         g.add(strip);
@@ -274,7 +276,7 @@ export class Environment {
           vec3 L = uBladeA + ab*tt - p; float d2 = dot(L,L);
           vec3 c = vec3(0.045,0.06,0.09)*(0.4+aRnd) + vec3(0.5,0.6,0.9)*uFlash*0.5;
           c += uBladeCol*uBladePow*(0.8/(1.0+d2*6.0) + 0.035/(1.0+d2*0.2));
-          for(int i=0;i<3;i++){ vec3 l = uLPos[i]-p; c += uLCol[i]*0.25/(1.0+dot(l,l)*1.5); }
+          for(int i=0;i<3;i++){ vec3 l = uLPos[i]-p; c += uLCol[i]*0.07/(1.0+dot(l,l)*5.0); }
           float dc = length(p-cameraPosition);
           vCol = c * smoothstep(0.25, 1.2, dc) * (0.35 + 0.65*aEnd);
           gl_Position = projectionMatrix*viewMatrix*vec4(p,1.0);
@@ -303,6 +305,32 @@ export class Environment {
     this.dyn = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffffff, 0, 0, 1.6); this.scene.add(l); return l; });
   }
 
+  // moths to a flame: motes that spiral in around the blade while it burns and drift off when it is sheathed
+  _moths() {
+    const n = 46, seed = new Float32Array(n * 3);
+    for (let i = 0; i < n * 3; i++) seed[i] = Math.random();
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(seed, 3));
+    const u = this.u; this.uGather = { value: 0 };
+    const m = new THREE.Points(geo, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+      uniforms: { uTime: u.uTime, uBladeA: u.uBladeA, uBladeB: u.uBladeB, uBladeCol: u.uBladeCol, uGather: this.uGather },
+      vertexShader: `uniform float uTime,uGather; uniform vec3 uBladeA,uBladeB,uBladeCol; varying vec3 vC;
+        void main(){ vec3 s = position; float t = uTime*(0.25+s.x*0.5) + s.y*40.0;
+          vec3 ax = normalize(uBladeB-uBladeA + vec3(1e-4)); vec3 sd = normalize(cross(ax, vec3(0.3,0.2,1.0))); vec3 up = cross(ax, sd);
+          float r = mix(1.6 + s.z*2.2, 0.07 + s.z*0.22, uGather) + 0.05*sin(t*7.0);
+          vec3 p = mix(uBladeA, uBladeB, fract(s.y + uTime*0.03*(s.x-0.5))) + (sd*cos(t*3.0) + up*sin(t*3.0))*r;
+          p.y += (1.0-uGather)*(0.4*sin(t) + 0.6);
+          vec4 mv = viewMatrix*vec4(p,1.0); gl_Position = projectionMatrix*mv;
+          float fl = 0.6 + 0.4*sin(t*23.0);
+          vC = mix(vec3(0.9,0.75,0.4)*0.5, uBladeCol*1.5 + 0.5, uGather)*fl;
+          gl_PointSize = clamp(26.0/max(-mv.z,0.3), 1.5, 9.0); }`,
+      fragmentShader: `varying vec3 vC; void main(){ float d = length(gl_PointCoord-0.5)*2.0; gl_FragColor = vec4(vC*pow(max(1.0-d,0.0),2.0), 1.0); }`,
+    }));
+    m.frustumCulled = false; m.renderOrder = 7; this.scene.add(m);
+  }
+  setStreak(n) { this.streak = n; }
+  // tint the eclipse toward a colour (bosses), or back to its own light
+  setMood(color) { if (color) this.mood.setRGB(1.0, 0.86, 0.72).lerp(color, 0.7); else this.mood.setRGB(1.0, 0.86, 0.72); }
   ripple(x, z, strength = 1) {
     this.u.uRip.value[this.ripIdx].set(x, z, this.u.uTime.value, strength);
     this.ripIdx = (this.ripIdx + 1) % 6;
@@ -351,7 +379,15 @@ export class Environment {
     u.uFlash.value += (target - u.uFlash.value) * clamp(vdt * 40);
     if (u.uFlash.value < 0.001) u.uFlash.value = 0;
     this.flashLight.intensity = u.uFlash.value * 2.2;
-    this.glyphMat.color.setRGB(1.0, 0.8, 0.6).multiplyScalar(0.35 + u.uBladePow.value * 0.25 + this.pulse.s * 2.0);
+    // the court keeps count: one lantern lights down the colonnade for every bolt returned in a row
+    for (let i = 0; i < this.lanterns.length; i++) {
+      const L = this.lanterns[i], lit = i < this.streak;
+      L.k += ((lit ? 1 : 0) - L.k) * clamp(vdt * (lit ? 14 : 3));
+      const base = 0.22 + u.uBladePow.value * 0.15 + this.pulse.s * 2.0;
+      L.m.color.setRGB(1.0, 0.72, 0.42).multiplyScalar(base * (1 - L.k)); L.m.color.r += L.k * 3.2; L.m.color.g += L.k * 2.1; L.m.color.b += L.k * 0.7;
+    }
+    u.uCC.value.lerp(this.mood, clamp(vdt * 1.2));
+    this.gather += ((u.uBladePow.value > 0.3 ? 1 : 0) - this.gather) * clamp(vdt * 1.6); this.uGather.value = this.gather;
 
     // light bus -> floor uniforms + 3 real point lights
     const all = this.frameLights;

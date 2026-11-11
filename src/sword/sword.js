@@ -245,7 +245,7 @@ export class Sword {
     cu.uRad.value = BLADE_RAD * (1 + this.over * 0.35 + (this.state === 'igniting' ? 0.6 * Math.exp(-Math.max(0, t - 0.085) * 6) : 0));
     const hu = this.halo.material.uniforms;
     hu.uA.value.copy(this.A); hu.uB.value.copy(this.B);
-    hu.uPower.value = P * (1 + this.swing * 0.5 + this.over * 0.5 + this.clashK * 1.3) * (this.len > 0.001 ? 1 : 0);
+    hu.uPower.value = P * (1 + this.swing * 0.5 + this.over * 0.5 + this.clashK * 0.5) * (this.len > 0.001 ? 1 : 0);
     hu.uInstab.value = instab; hu.uTip.value = tipFlare; hu.uCore.value = cu.uRad.value;
     this.halo.visible = this.len > 0.001;
 

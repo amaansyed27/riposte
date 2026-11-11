@@ -204,6 +204,18 @@ export class Audio {
     if (!this.ready) return;
     for (const [i, s] of [0, 7, 12, 19].entries()) this._tone('triangle', note(s + (n % 2 ? 3 : 0)), note(s + (n % 2 ? 3 : 0)), 1.8, 0.14, { delay: i * 0.09, wet: 1 });
   }
+  // droid chatter: hello (curious), yelp (its own bolt is coming back), laugh (it got you), tap (the Maestro's baton)
+  chirp(kind, pan = 0) {
+    if (!this.ready) return; const now = this.ctx.currentTime; if (now - (this._chirp || 0) < 0.22) return; this._chirp = now;
+    const R = (a, b) => a + Math.random() * (b - a);
+    const seq = kind === 'hello' ? Array.from({ length: 4 + (Math.random() * 3 | 0) }, () => [R(700, 2000), R(0.8, 1.3)])
+      : kind === 'yelp' ? [[900, 1.8], [1500, 1.7], [2300, 1.4]]
+      : kind === 'laugh' ? [[1500, 0.8], [1300, 0.8], [1100, 0.8], [900, 0.7], [1100, 0.8], [900, 0.6]]
+      : [[2600, 1], [2600, 1]];
+    const gap = kind === 'tap' ? 0.16 : kind === 'yelp' ? 0.05 : 0.075;
+    seq.forEach(([fq, glide], i) => this._tone(kind === 'tap' ? 'triangle' : i % 2 ? 'square' : 'triangle', fq, fq * glide, kind === 'tap' ? 0.03 : 0.055, kind === 'tap' ? 0.16 : 0.06, { pan, wet: 0.35, delay: i * gap, filter: { f: 3200, q: 1 } }));
+  }
+  lanterns() { if (!this.ready) return; this._tone('sine', 220, 70, 0.5, 0.25, { wet: 0.9 }); }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
   sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }
 }
