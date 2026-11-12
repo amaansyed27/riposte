@@ -53,7 +53,7 @@ Every fourth bout, one of them comes down out of the eclipse. Then they come bac
 <tr>
 <td width="33%"><img src="media/readme/maestro.jpg" alt="The Maestro"></td>
 <td width="33%"><img src="media/readme/hydra.jpg" alt="The Hydra"></td>
-<td width="33%"><img src="media/readme/kill.jpg" alt="A master falls"></td>
+<td width="33%"><img src="media/readme/bastion.jpg" alt="The Bastion"></td>
 </tr>
 <tr>
 <td align="center"><b>The Maestro</b><br><sub>It conducts. You answer.</sub></td>
