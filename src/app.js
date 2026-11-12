@@ -49,7 +49,7 @@ const app = {
   camPos: new THREE.Vector3(0, 1.55, 0),
   trauma: 0, kickV: 0, fovPunch: 0, quality: 1, hand: { on: false, x: 0, y: 0 },
   input: {
-    ndc: { x: 0.12, y: -0.05 }, px: 0, py: 0, moved: false, roll: 0, rollT: -9,
+    ndc: { x: 0.12, y: -0.05 }, px: 0, py: 0, moved: false, aim: { yaw: 0, pitch: 0.85, t: -9 },     // a motion device (phone, gyro pad) aims the blade as a direction
     set(nx, ny) { this.ndc.x = clamp(nx, -1.1, 1.1); this.ndc.y = clamp(ny, -1.1, 1.1); this.px = (this.ndc.x * 0.5 + 0.5) * app.size.w; this.py = (0.5 - this.ndc.y * 0.5) * app.size.h; },
   },
   addTrauma(x) { this.trauma = Math.min(1, this.trauma + x); },
@@ -95,7 +95,12 @@ const pads = new Gamepads(app, {
   onStatus: (t, ok) => { const el = $('padStatus'); el.textContent = t; el.classList.toggle('ok', !!ok); },
 });
 const remote = new Remote(app, {
-  onButton: (k) => { if (k === 'confirm') confirm(); else if (k === 'pause') app.game.togglePause(); },
+  onButton: (k) => {
+    nav.setPad(true);
+    if (k === 'confirm') confirm(); else if (k === 'back') back(); else if (k === 'pause') app.game.togglePause();
+    else if (k === 'up') nav.move(-1); else if (k === 'down') nav.move(1); else if (k === 'left') nav.side(-1); else if (k === 'right') nav.side(1);
+    else if (k === 'blade' && app.game.state === 'play') app.sword.toggle();
+  },
   onStatus: (t, ok) => { const el = $('pairStatus'); el.textContent = t; el.style.color = ok ? '#7dffb0' : ''; },
 });
 // one haptic vocabulary for every device: phone vibration, gamepad rumble, paired phone
@@ -223,7 +228,7 @@ syncInstall();
 // every screen change: cursor back, one item selected, the right hints
 const nav = new Nav(app);
 const _screen = app.hud.screen.bind(app.hud);
-app.hud.screen = (name) => { _screen(name); document.body.classList.toggle('menu', !!name); if (name) { app.hud.el.banner.classList.remove('show'); app.hud.hint(null); } nav.sync(); };
+app.hud.screen = (name) => { _screen(name); document.body.classList.toggle('menu', !!name); remote.send({ t: 's', menu: !!name }); if (name) { app.hud.el.banner.classList.remove('show'); app.hud.hint(null); } nav.sync(); };
 
 // ---------- rolling credits: scrolls over the court to the theme; pause, hold to hurry, back out any time
 const roll = { y: 0, paused: false, fast: false, el: $('roll') };
@@ -409,19 +414,26 @@ function poseTargets(dt) {
   } else {
     // play: your pointer is the blade; the hilt is towed behind it. Move sideways and the blade lies flat,
     // cut down and it tips over, circle and it spins. Hold still and it keeps the guard you left it in.
-    const D = 1.5, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D, R = 0.31;
-    const hand = app.hand;
-    if (!hand.on) { hand.on = true; hand.x = px; hand.y = py - R; }
-    if (app.input.rollT > t - 0.4) {
-      // gyro (phone as saber, DualSense): the blade takes the device's real roll
-      const ang = app.input.roll; hand.x = px - Math.sin(ang) * R; hand.y = py - Math.cos(ang) * R;
+    const aim = app.input.aim;
+    if (aim.t > t - 1.5) {
+      // the phone (or a gyro pad) IS the hilt: yaw swings the blade across the court, pitch raises and lowers it.
+      // Pitch 0 points straight into the scene; past vertical it leans back toward you.
+      const cp = Math.cos(aim.pitch), sy = Math.sin(aim.yaw);
+      _d.set(cp * sy, Math.sin(aim.pitch), -cp * Math.cos(aim.yaw)).normalize();
+      _r.set(clamp(sy * 0.52, -0.62, 0.62), -0.46 + Math.min(0, Math.sin(aim.pitch)) * 0.12, -1.22);
+      app.hand.on = false;
     } else {
-      let dx = px - hand.x, dy = py - hand.y; const dd = Math.hypot(dx, dy);
-      if (dd > 1e-5) { hand.x = px - dx / dd * R; hand.y = py - dy / dd * R; }
+    const D = 1.5, px = app.input.ndc.x * th * app.aspect * D, py = app.input.ndc.y * th * D, R = 0.31;
+      const hand = app.hand;
+      if (!hand.on) { hand.on = true; hand.x = px; hand.y = py - R; }
+      {
+        let dx = px - hand.x, dy = py - hand.y; const dd = Math.hypot(dx, dy);
+        if (dd > 1e-5) { hand.x = px - dx / dd * R; hand.y = py - dy / dd * R; }
+      }
+      _t.set(px, py, -D);
+      _d.set((px - hand.x) / R, (py - hand.y) / R, -0.42).normalize();
+      _r.copy(_t).addScaledVector(_d, -0.30 * BLADE_LEN);
     }
-    _t.set(px, py, -D);
-    _d.set((px - hand.x) / R, (py - hand.y) / R, -0.42).normalize();
-    _r.copy(_t).addScaledVector(_d, -0.30 * BLADE_LEN);
     _r.x += sway(1) * 0.01; _r.y += sway(2) * 0.01;
   }
   if (app.pose !== 'play') app.hand.on = false;
@@ -496,6 +508,7 @@ function loop(now) {
   if (fpsN >= 45) {
     const avg = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0;
     $('fps').textContent = Math.round(1 / avg);
+    if (app.hud.current === 'controls' && pads.pad()) $('padStatus').textContent = (pads.name || 'Gamepad') + ' · ' + pads.diag;
     if (app.settings.v.adaptive === 'on' && avg > 1 / 42 && !document.hidden) { lowT++; if (lowT >= 2 && app.quality > 0.55) { app.quality = Math.max(0.55, app.quality - 0.15); lowT = 0; resize(); } } else lowT = 0;
   }
 }

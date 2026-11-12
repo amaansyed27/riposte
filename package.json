@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "You cannot strike. Only return. A swipe-to-deflect energy sword browser game.",
   "scripts": {
-    "dev": "vite --port 5173 --strictPort",
+    "dev": "vite --port 5173 --strictPort --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --port 4173"
   },

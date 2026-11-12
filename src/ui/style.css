@@ -395,7 +395,7 @@ input[type=range].sel, input[type=range]:focus-visible { outline: 1px solid rgba
    without this, every return replayed 2.5 s of delays over a scene at its darkest, i.e. a blank black screen. */
 #intro:not(.first) { animation: screenIn .22s ease-out; }
 @keyframes screenIn { from { opacity: 0; } }
-#intro:not(.first) .over, #intro:not(.first) .tag, #intro:not(.first) .menu, #intro:not(.first) .wm-top, #intro:not(.first) .wm-bot { animation: none !important; opacity: 1 !important; letter-spacing: revert-layer; }
+#intro:not(.first) .over, #intro:not(.first) .tag, #intro:not(.first) .menu, #intro:not(.first) .wm-top, #intro:not(.first) .wm-bot { animation: none !important; opacity: 1 !important; }
 #intro:not(.first) .wm-top { transform: translate(.075em, -.06em); }
 #intro:not(.first) .wm-cut { animation: none !important; clip-path: inset(0 0 0 0); opacity: .5; }
 #intro:not(.first) .bl::before { animation: blHum 1.9s ease-in-out infinite !important; transform: scaleY(1); }

@@ -16,10 +16,10 @@ export class Remote {
     this.peer.on('error', (e) => this.onStatus(`Pairing problem: ${e.type || e.message}. Check your connection and try again.`));
     this.peer.on('connection', (c) => {
       this.conn = c;
-      c.on('open', () => { this.active = true; this.onStatus('Phone connected. Point it at the screen and tap Recenter.', true); this.send({ t: 'hello', color: this.app.sword.colorName }); });
+      c.on('open', () => { this.active = true; this.onStatus('Phone connected. Point its top edge at the screen and tap Recentre.', true); this.send({ t: 'hello', color: this.app.sword.colorName, menu: !!this.app.hud.current }); this.send({ t: 'blade', on: this.app.sword.isOn }); });
       c.on('data', (m) => {
         if (!m || typeof m !== 'object') return;
-        if (m.t === 'o' && Number.isFinite(m.x) && Number.isFinite(m.y)) { this.app.input.set(m.x, m.y); if (Number.isFinite(m.r)) { this.app.input.roll = m.r; this.app.input.rollT = this.app.time; } }
+        if (m.t === 'o' && Number.isFinite(m.yw) && Number.isFinite(m.p)) { const a = this.app.input.aim; a.yaw = Math.max(-2, Math.min(2, m.yw)); a.pitch = Math.max(-1.2, Math.min(2.1, m.p)); a.t = this.app.time; }
         else if (m.t === 'b' && typeof m.k === 'string') this.onButton(m.k);
       });
       c.on('close', () => { this.active = false; this.conn = null; this.onStatus('Phone disconnected. Scan again to rejoin.'); });

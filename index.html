@@ -34,14 +34,13 @@
         <p class="tag">You cannot strike. Only return.</p>
       </div>
       <nav class="menu">
-        <button id="btnContinue" class="btn primary big hidden" data-desc="Pick up your run where you left it.">Continue</button>
-        <button id="btnPlay" class="btn primary big" data-desc="Choose a blade and step onto the court.">Play</button>
-        <button id="btnSaber" class="btn desk" data-desc="Play on this screen and swing your phone. Pairs with a QR code.">Use your phone as the saber</button>
-        <button id="btnControls" class="btn" data-desc="Gamepad, phone, tilt, fullscreen and volume.">Settings</button>
-        <button id="btnInstallMenu" class="btn small hidden" data-desc="Add RIPOSTE to this device as an app. Opens fullscreen, works offline.">Install app</button>
-        <button id="btnFsMenu" class="btn small" data-desc="Fill the whole screen. F toggles it at any time.">Fullscreen</button>
-        <button id="btnCredits" class="btn small" data-desc="Who and what made this.">Credits</button>
-        <p id="menuDesc" class="menu-desc"></p>
+        <button id="btnContinue" class="btn primary big hidden">Continue</button>
+        <button id="btnPlay" class="btn primary big">Play</button>
+        <button id="btnSaber" class="btn desk">Use your phone as the saber</button>
+        <button id="btnControls" class="btn">Settings</button>
+        <button id="btnInstallMenu" class="btn small hidden">Install app</button>
+        <button id="btnFsMenu" class="btn small">Fullscreen</button>
+        <button id="btnCredits" class="btn small">Credits</button>
         <p id="introBest" class="best-line"></p>
       </nav>
       <p class="legal">© 2026 Amaan Syed · Dawnlight Labs · Built with Claude</p>
@@ -59,7 +58,6 @@
           <button id="btnBack" class="btn">Back</button>
           <button id="btnEnter" class="btn primary big">Enter the court</button>
         </div>
-        <p class="fine"><span class="desk">The blade follows your hand and turns the way you move it · lay it across each bolt · swing hard to riposte</span><span class="touch">Drag: the blade turns the way you move · lay it across each bolt · swing hard to riposte</span></p>
       </div>
     </section>
 
@@ -79,14 +77,14 @@
         </aside>
         <div class="panes" id="setPanes">
           <div class="pane" data-pane="audio">
-            <h3 class="pane-h">Audio</h3><p class="pane-d">The score follows the fight. These set how it sits against everything else.</p>
+            <h3 class="pane-h">Audio</h3>
             <div class="srow"><div class="s-l"><b>Music</b><span>The orchestral beds, the drums and the accents.</span></div><div class="s-c"><input id="volMusic" type="range" min="0" max="100" value="80" aria-label="Music volume"><output></output></div></div>
             <div class="srow"><div class="s-l"><b>Effects</b><span>Blade, bolts, impacts and the orbs.</span></div><div class="s-c"><input id="volSfx" type="range" min="0" max="100" value="85" aria-label="Effects volume"><output></output></div></div>
             <div class="srow"><div class="s-l"><b>Ambience</b><span>Rain, wind and thunder.</span></div><div class="s-c"><input id="volAmb" type="range" min="0" max="100" value="60" aria-label="Ambience volume"><output></output></div></div>
             <div class="srow"><div class="s-l"><b>Mute</b><span>Silence everything. M toggles it at any time.</span></div><div class="s-c"><div class="seg" id="segMute"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
           </div>
           <div class="pane hidden" data-pane="graphics">
-            <h3 class="pane-h">Graphics</h3><p class="pane-d">Everything is rendered live. Lower these if the blade ever feels heavy.</p>
+            <h3 class="pane-h">Graphics</h3>
             <div class="srow"><div class="s-l"><b>Quality</b><span>Sets everything below at once.</span></div><div class="s-c"><div class="seg" data-set="preset"><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div></div></div>
             <div class="srow"><div class="s-l"><b>Resolution</b><span>Render scale. The biggest lever on speed.</span></div><div class="s-c"><input data-set="scale" type="range" min="50" max="100" step="5" value="100" aria-label="Resolution scale"><output></output></div></div>
             <div class="srow"><div class="s-l"><b>Reflections</b><span>The court’s water mirrors the whole scene.</span></div><div class="s-c"><div class="seg" data-set="reflections"><button data-v="off">Off</button><button data-v="low">Low</button><button data-v="high">High</button></div></div></div>
@@ -97,15 +95,15 @@
             <div class="srow"><div class="s-l"><b>Adaptive resolution</b><span>Drops the resolution by itself if the frame rate falls.</span></div><div class="s-c"><div class="seg" data-set="adaptive"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
           </div>
           <div class="pane hidden" data-pane="display">
-            <h3 class="pane-h">Display</h3><p class="pane-d">How the game fills your screen.</p>
+            <h3 class="pane-h">Display</h3>
             <div class="srow" id="fsRow"><div class="s-l"><b>Fullscreen</b><span>Fill the whole screen. F toggles it at any time.</span></div><div class="s-c"><button id="btnFsCtl" class="btn small">Enter</button></div></div>
             <div class="srow"><div class="s-l"><b>Frame rate counter</b><span>Shows frames per second in the corner.</span></div><div class="s-c"><div class="seg" data-set="fps"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
             <div class="srow" id="landRow"><div class="s-l"><b>Landscape</b><span>On a phone the game plays best sideways and fullscreen.</span></div><div class="s-c"><button id="btnLandscape" class="btn small">Go landscape</button></div></div>
           </div>
           <div class="pane hidden" data-pane="controls">
-            <h3 class="pane-h">Controls</h3><p class="pane-d">The blade follows your hand, whatever your hand is holding.</p>
+            <h3 class="pane-h">Controls</h3>
             <div class="srow"><div class="s-l"><b>Mouse or touch</b><span>Always on. Your pointer or finger is a point on the blade; the hilt trails behind it.</span></div><div class="s-c"><em class="ok">Ready</em></div></div>
-            <div class="srow"><div class="s-l"><b>Phone as the saber</b><span>Play on this screen and swing your phone. Scan the code, point the phone at the screen, tap Recenter.</span></div><div class="s-c"><button id="btnPhone" class="btn small">Pair a phone</button></div></div>
+            <div class="srow"><div class="s-l"><b>Phone as the saber</b><span>Play on this screen and swing your phone. Scan the code, hold the phone like a hilt with its top edge toward the screen, tap Recentre.</span></div><div class="s-c"><button id="btnPhone" class="btn small">Pair a phone</button></div></div>
             <div id="pairBox" class="pair hidden"><canvas id="qr" width="168" height="168"></canvas><div><p id="pairStatus">Starting…</p><p id="pairUrl" class="mono"></p></div></div>
             <div class="srow"><div class="s-l"><b>Gamepad</b><span>Right stick aims, A confirms and sheathes, B goes back, Start pauses. D-pad moves through menus.</span></div><div class="s-c"><em id="padStatus">Press any button</em></div></div>
             <div class="srow" id="gyroRow"><div class="s-l"><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div><div class="s-c"><button id="btnGyro" class="btn small">Enable</button></div></div>
@@ -113,7 +111,7 @@
             <div class="srow"><div class="s-l"><b>Keys</b><span>Space sheathes · Esc or P pauses · M mutes · F fullscreen · R recentres a gyro.</span></div><div class="s-c"></div></div>
           </div>
           <div class="pane hidden" data-pane="game">
-            <h3 class="pane-h">Game</h3><p class="pane-d">Your progress lives in this browser.</p>
+            <h3 class="pane-h">Game</h3>
             <div class="srow" id="installRow"><div class="s-l"><b>Install</b><span id="installDesc">Add RIPOSTE to your device as an app. It opens fullscreen and works offline.</span></div><div class="s-c"><button id="btnInstall" class="btn small">Install</button></div></div>
             <div class="srow"><div class="s-l"><b>Opening sequence</b><span>Watch the opening again.</span></div><div class="s-c"><button id="btnReplayIntro" class="btn small">Replay</button></div></div>
             <div class="srow"><div class="s-l"><b>Tutorial</b><span>Bring back the guided first bolt.</span></div><div class="s-c"><button id="btnResetTut" class="btn small">Reset</button></div></div>
@@ -180,7 +178,7 @@
         <div id="combo"><b id="mult">×1</b><span><i id="comboN">0</i> returned in a row</span></div>
         <div id="bossbar" class="hidden"><span id="bossName"></span><div class="track"><div id="bossFill"></div></div></div>
       </div>
-      <div id="tempo"><span>Tempo</span><div class="track"><div id="tempoFill"></div></div><small id="tempoHint">Every return fills it. Full, time bends.</small></div>
+      <div id="tempo"><span>Tempo</span><div class="track"><div id="tempoFill"></div></div></div>
     </section>
 
     <div id="callout"></div>
@@ -198,10 +196,10 @@
           <div class="res-scoreline"><div id="finalScore" class="res-score">0</div><div id="best" class="res-best"></div></div>
           <div class="ladder"><div class="ladder-track"><i id="ladderFill"></i></div><div id="ladderMarks" class="ladder-marks"></div><p id="ladderNext" class="ladder-next"></p></div>
           <nav class="res-menu">
-            <button id="again" class="btn primary big" data-desc="Light the blade and start from Bout I.">Try again</button>
-            <button id="homeEnd" class="btn" data-desc="Back to the opening page.">Home</button>
-            <button id="share" class="btn" data-desc="Post your result.">Share</button>
-            <button id="copy" class="btn" data-desc="Copy your result as text.">Copy result</button>
+            <button id="again" class="btn primary big">Try again</button>
+            <button id="homeEnd" class="btn">Home</button>
+            <button id="share" class="btn">Share</button>
+            <button id="copy" class="btn">Copy result</button>
           </nav>
         </div>
         <div class="res-stats">
@@ -221,9 +219,9 @@
           <h2 class="res-rank">Sheathed</h2>
           <p class="res-quote">Blade retracted. The court waits.</p>
           <nav class="res-menu">
-            <button id="resume" class="btn primary big" data-desc="Light the blade and carry on.">Resume</button>
-            <button id="pauseSettings" class="btn" data-desc="Audio, graphics and display.">Settings</button>
-            <button id="homePause" class="btn" data-desc="Leave the bout. Your run is saved from Bout II on.">Home</button>
+            <button id="resume" class="btn primary big">Resume</button>
+            <button id="pauseSettings" class="btn">Settings</button>
+            <button id="homePause" class="btn">Home</button>
           </nav>
         </div>
         <div class="res-stats">
