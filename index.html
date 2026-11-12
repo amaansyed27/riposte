@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#03060b" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="RIPOSTE" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <title>RIPOSTE — you cannot strike, only return</title>
   <meta name="description" content="A browser game where you can't attack. Swing an energy sword into incoming bolts and send every one back to whoever fired it." />
   <meta property="og:title" content="RIPOSTE" />
@@ -32,6 +38,7 @@
         <button id="btnPlay" class="btn primary big" data-desc="Choose a blade and step onto the court.">Play</button>
         <button id="btnSaber" class="btn desk" data-desc="Play on this screen and swing your phone. Pairs with a QR code.">Use your phone as the saber</button>
         <button id="btnControls" class="btn" data-desc="Gamepad, phone, tilt, fullscreen and volume.">Settings</button>
+        <button id="btnInstallMenu" class="btn small hidden" data-desc="Add RIPOSTE to this device as an app. Opens fullscreen, works offline.">Install app</button>
         <button id="btnFsMenu" class="btn small" data-desc="Fill the whole screen. F toggles it at any time.">Fullscreen</button>
         <button id="btnCredits" class="btn small" data-desc="Who and what made this.">Credits</button>
         <p id="menuDesc" class="menu-desc"></p>
@@ -56,40 +63,64 @@
       </div>
     </section>
 
-    <!-- controllers -->
-    <section id="controls" class="screen hidden">
-      <div class="card wide">
-        <div class="card-k">Settings</div>
-        <div class="ctl">
-          <div class="ctl-row">
-            <div><b>Mouse or touch</b><span>Always on. The blade follows your pointer or finger.</span></div>
-            <em class="ok">Ready</em>
+    <!-- settings: full screen, categories on the left -->
+    <section id="controls" class="screen page hidden" data-ctx="menu">
+      <div class="pg">
+        <aside class="side">
+          <span class="pg-k">Settings</span>
+          <nav id="setTabs" class="tabs">
+            <button class="tab on" data-tab="audio">Audio</button>
+            <button class="tab" data-tab="graphics">Graphics</button>
+            <button class="tab" data-tab="display">Display</button>
+            <button class="tab menu-only" data-tab="controls">Controls</button>
+            <button class="tab menu-only" data-tab="game">Game</button>
+          </nav>
+          <button id="btnCtlClose" class="btn">Back</button>
+        </aside>
+        <div class="panes" id="setPanes">
+          <div class="pane" data-pane="audio">
+            <h3 class="pane-h">Audio</h3><p class="pane-d">The score follows the fight. These set how it sits against everything else.</p>
+            <div class="srow"><div class="s-l"><b>Music</b><span>The orchestral beds, the drums and the accents.</span></div><div class="s-c"><input id="volMusic" type="range" min="0" max="100" value="80" aria-label="Music volume"><output></output></div></div>
+            <div class="srow"><div class="s-l"><b>Effects</b><span>Blade, bolts, impacts and the orbs.</span></div><div class="s-c"><input id="volSfx" type="range" min="0" max="100" value="85" aria-label="Effects volume"><output></output></div></div>
+            <div class="srow"><div class="s-l"><b>Ambience</b><span>Rain, wind and thunder.</span></div><div class="s-c"><input id="volAmb" type="range" min="0" max="100" value="60" aria-label="Ambience volume"><output></output></div></div>
+            <div class="srow"><div class="s-l"><b>Mute</b><span>Silence everything. M toggles it at any time.</span></div><div class="s-c"><div class="seg" id="segMute"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
           </div>
-          <div class="ctl-row">
-            <div><b>Phone as the saber</b><span>Play on this screen and swing your phone. Scan the code, point the phone at the screen, tap Recenter. Needs both devices online.</span></div>
-            <button id="btnPhone" class="btn small">Pair a phone</button>
+          <div class="pane hidden" data-pane="graphics">
+            <h3 class="pane-h">Graphics</h3><p class="pane-d">Everything is rendered live. Lower these if the blade ever feels heavy.</p>
+            <div class="srow"><div class="s-l"><b>Quality</b><span>Sets everything below at once.</span></div><div class="s-c"><div class="seg" data-set="preset"><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div></div></div>
+            <div class="srow"><div class="s-l"><b>Resolution</b><span>Render scale. The biggest lever on speed.</span></div><div class="s-c"><input data-set="scale" type="range" min="50" max="100" step="5" value="100" aria-label="Resolution scale"><output></output></div></div>
+            <div class="srow"><div class="s-l"><b>Reflections</b><span>The court’s water mirrors the whole scene.</span></div><div class="s-c"><div class="seg" data-set="reflections"><button data-v="off">Off</button><button data-v="low">Low</button><button data-v="high">High</button></div></div></div>
+            <div class="srow"><div class="s-l"><b>Bloom</b><span>The glow around the blade, bolts and the eclipse.</span></div><div class="s-c"><div class="seg" data-set="bloom"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
+            <div class="srow"><div class="s-l"><b>Rain</b><span>How much of it falls.</span></div><div class="s-c"><div class="seg" data-set="rain"><button data-v="off">Off</button><button data-v="light">Light</button><button data-v="heavy">Heavy</button></div></div></div>
+            <div class="srow"><div class="s-l"><b>Film effects</b><span>Grain and colour fringing at the edges.</span></div><div class="s-c"><div class="seg" data-set="film"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
+            <div class="srow"><div class="s-l"><b>Screen shake</b><span>How hard impacts move the camera.</span></div><div class="s-c"><input data-set="shake" type="range" min="0" max="100" step="5" value="100" aria-label="Screen shake"><output></output></div></div>
+            <div class="srow"><div class="s-l"><b>Adaptive resolution</b><span>Drops the resolution by itself if the frame rate falls.</span></div><div class="s-c"><div class="seg" data-set="adaptive"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
           </div>
-          <div id="pairBox" class="pair hidden"><canvas id="qr" width="168" height="168"></canvas><div><p id="pairStatus">Starting…</p><p id="pairUrl" class="mono"></p></div></div>
-          <div class="ctl-row">
-            <div><b>Gamepad</b><span>Right stick aims, A confirms and sheathes, Start pauses. Rumble where supported.</span></div>
-            <em id="padStatus">Press any button</em>
+          <div class="pane hidden" data-pane="display">
+            <h3 class="pane-h">Display</h3><p class="pane-d">How the game fills your screen.</p>
+            <div class="srow" id="fsRow"><div class="s-l"><b>Fullscreen</b><span>Fill the whole screen. F toggles it at any time.</span></div><div class="s-c"><button id="btnFsCtl" class="btn small">Enter</button></div></div>
+            <div class="srow"><div class="s-l"><b>Frame rate counter</b><span>Shows frames per second in the corner.</span></div><div class="s-c"><div class="seg" data-set="fps"><button data-v="off">Off</button><button data-v="on">On</button></div></div></div>
+            <div class="srow" id="landRow"><div class="s-l"><b>Landscape</b><span>On a phone the game plays best sideways and fullscreen.</span></div><div class="s-c"><button id="btnLandscape" class="btn small">Go landscape</button></div></div>
           </div>
-          <div class="ctl-row" id="gyroRow">
-            <div><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div>
-            <button id="btnGyro" class="btn small">Enable</button>
+          <div class="pane hidden" data-pane="controls">
+            <h3 class="pane-h">Controls</h3><p class="pane-d">The blade follows your hand, whatever your hand is holding.</p>
+            <div class="srow"><div class="s-l"><b>Mouse or touch</b><span>Always on. Your pointer or finger is a point on the blade; the hilt trails behind it.</span></div><div class="s-c"><em class="ok">Ready</em></div></div>
+            <div class="srow"><div class="s-l"><b>Phone as the saber</b><span>Play on this screen and swing your phone. Scan the code, point the phone at the screen, tap Recenter.</span></div><div class="s-c"><button id="btnPhone" class="btn small">Pair a phone</button></div></div>
+            <div id="pairBox" class="pair hidden"><canvas id="qr" width="168" height="168"></canvas><div><p id="pairStatus">Starting…</p><p id="pairUrl" class="mono"></p></div></div>
+            <div class="srow"><div class="s-l"><b>Gamepad</b><span>Right stick aims, A confirms and sheathes, B goes back, Start pauses. D-pad moves through menus.</span></div><div class="s-c"><em id="padStatus">Press any button</em></div></div>
+            <div class="srow" id="gyroRow"><div class="s-l"><b>Gamepad gyro</b><span>DualSense over USB or Bluetooth, Chromium only. Experimental. Browsers do not expose Xbox motion.</span></div><div class="s-c"><button id="btnGyro" class="btn small">Enable</button></div></div>
+            <div class="srow" id="motionRow"><div class="s-l"><b>Tilt to aim</b><span>Playing on this phone: tilt it to move the blade instead of dragging.</span></div><div class="s-c"><button id="btnMotion" class="btn small">Enable</button></div></div>
+            <div class="srow"><div class="s-l"><b>Keys</b><span>Space sheathes · Esc or P pauses · M mutes · F fullscreen · R recentres a gyro.</span></div><div class="s-c"></div></div>
           </div>
-          <div class="ctl-row"><div><b>Music</b><span>The score.</span></div><input id="volMusic" type="range" min="0" max="100" value="80" aria-label="Music volume"></div>
-          <div class="ctl-row"><div><b>Effects</b><span>Blade, bolts, impacts, rain.</span></div><input id="volSfx" type="range" min="0" max="100" value="100" aria-label="Effects volume"></div>
-          <div class="ctl-row" id="fsRow">
-            <div><b>Fullscreen</b><span>Fill the whole screen. You can also press F at any time.</span></div>
-            <button id="btnFsCtl" class="btn small">Enter</button>
-          </div>
-          <div class="ctl-row" id="motionRow">
-            <div><b>Tilt to aim</b><span>Playing on this phone: tilt it to move the blade instead of dragging. You can also switch on the blade page.</span></div>
-            <button id="btnMotion" class="btn small">Enable</button>
+          <div class="pane hidden" data-pane="game">
+            <h3 class="pane-h">Game</h3><p class="pane-d">Your progress lives in this browser.</p>
+            <div class="srow" id="installRow"><div class="s-l"><b>Install</b><span id="installDesc">Add RIPOSTE to your device as an app. It opens fullscreen and works offline.</span></div><div class="s-c"><button id="btnInstall" class="btn small">Install</button></div></div>
+            <div class="srow"><div class="s-l"><b>Opening sequence</b><span>Watch the opening again.</span></div><div class="s-c"><button id="btnReplayIntro" class="btn small">Replay</button></div></div>
+            <div class="srow"><div class="s-l"><b>Tutorial</b><span>Bring back the guided first bolt.</span></div><div class="s-c"><button id="btnResetTut" class="btn small">Reset</button></div></div>
+            <div class="srow"><div class="s-l"><b>Saved run</b><span id="runDesc">No run in progress.</span></div><div class="s-c"><button id="btnDropRun" class="btn small">Abandon</button></div></div>
+            <div class="srow"><div class="s-l"><b>Best score</b><span id="bestDesc">—</span></div><div class="s-c"><button id="btnResetBest" class="btn small">Reset</button></div></div>
           </div>
         </div>
-        <div class="actions"><button id="btnCtlClose" class="btn primary">Done</button></div>
       </div>
     </section>
 
@@ -157,28 +188,52 @@
     <div id="floaters"></div>
     <div id="hint"></div>
 
-    <section id="end" class="screen hidden">
-      <div class="card">
-        <div class="card-k">The bout is over</div>
-        <div id="rank" class="card-rank">Duelist</div>
-        <div id="finalScore" class="card-score">0</div>
-        <dl class="stats">
-          <div><dt>Returned</dt><dd id="stReturned">0</dd></div>
-          <div><dt>Ripostes</dt><dd id="stPerfect">0</dd></div>
-          <div><dt>Best streak</dt><dd id="stStreak">0</dd></div>
-          <div><dt>Bout</dt><dd id="stBout">I</dd></div>
-        </dl>
-        <div id="best" class="card-best"></div>
-        <div class="actions">
-          <button id="again" class="btn primary">Try again</button>
-          <button id="homeEnd" class="btn">Home</button>
-          <button id="share" class="btn">Share</button>
-          <button id="copy" class="btn">Copy result</button>
+    <!-- results: full screen -->
+    <section id="end" class="screen page hidden">
+      <div class="res">
+        <div class="res-main">
+          <span class="pg-k">The bout is over</span>
+          <h2 id="rank" class="res-rank">Duelist</h2>
+          <p id="resQuote" class="res-quote"></p>
+          <div class="res-scoreline"><div id="finalScore" class="res-score">0</div><div id="best" class="res-best"></div></div>
+          <div class="ladder"><div class="ladder-track"><i id="ladderFill"></i></div><div id="ladderMarks" class="ladder-marks"></div><p id="ladderNext" class="ladder-next"></p></div>
+          <nav class="res-menu">
+            <button id="again" class="btn primary big" data-desc="Light the blade and start from Bout I.">Try again</button>
+            <button id="homeEnd" class="btn" data-desc="Back to the opening page.">Home</button>
+            <button id="share" class="btn" data-desc="Post your result.">Share</button>
+            <button id="copy" class="btn" data-desc="Copy your result as text.">Copy result</button>
+          </nav>
+        </div>
+        <div class="res-stats">
+          <div class="stat"><span>Bout reached</span><b id="stBout">I</b><i class="bar"><u id="barBout"></u></i></div>
+          <div class="stat"><span>Bolts returned</span><b id="stReturned">0</b><i class="bar"><u id="barReturned"></u></i></div>
+          <div class="stat"><span>Ripostes</span><b id="stPerfect">0</b><i class="bar"><u id="barPerfect"></u></i><em id="stPerfectPct"></em></div>
+          <div class="stat"><span>Best streak</span><b id="stStreak">0</b><i class="bar"><u id="barStreak"></u></i></div>
         </div>
       </div>
     </section>
 
-    <section id="paused" class="screen hidden"><div class="card small"><div class="card-rank">Sheathed</div><p class="lore">Blade retracted. The court waits.</p><div class="actions"><button id="resume" class="btn primary">Resume</button><button id="homePause" class="btn">Home</button></div></div></section>
+    <!-- pause: full screen -->
+    <section id="paused" class="screen page hidden">
+      <div class="res">
+        <div class="res-main">
+          <span class="pg-k">Paused</span>
+          <h2 class="res-rank">Sheathed</h2>
+          <p class="res-quote">Blade retracted. The court waits.</p>
+          <nav class="res-menu">
+            <button id="resume" class="btn primary big" data-desc="Light the blade and carry on.">Resume</button>
+            <button id="pauseSettings" class="btn" data-desc="Audio, graphics and display.">Settings</button>
+            <button id="homePause" class="btn" data-desc="Leave the bout. Your run is saved from Bout II on.">Home</button>
+          </nav>
+        </div>
+        <div class="res-stats">
+          <div class="stat"><span>Bout</span><b id="psBout">I</b></div>
+          <div class="stat"><span>Score</span><b id="psScore">0</b></div>
+          <div class="stat"><span>Guard</span><b id="psGuard">3</b></div>
+          <div class="stat"><span>In a row</span><b id="psStreak">0</b></div>
+        </div>
+      </div>
+    </section>
 
     <div id="navHint" class="hidden desk"></div>
     <div id="soundHint" class="hidden"><span class="desk">Click anywhere for sound</span><span class="touch">Tap anywhere for sound</span></div>
@@ -192,6 +247,15 @@
       <button id="btnPause" class="icon hidden" aria-label="Pause" title="Pause (Esc)">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg>
       </button>
+    </div>
+    <div id="fps" class="hidden">60</div>
+    <!-- phones: the game wants to be sideways and fullscreen -->
+    <div id="rotate" class="hidden">
+      <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true"><g class="ph"><rect x="42" y="18" width="36" height="84" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M54 94h12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></g></svg>
+      <h3>Turn your phone sideways</h3>
+      <p>RIPOSTE plays best in landscape and fullscreen.</p>
+      <button id="btnRotGo" class="btn primary">Go fullscreen landscape</button>
+      <button id="btnRotSkip" class="btn small">Stay in portrait</button>
     </div>
     <div id="fallback" class="hidden">This needs WebGL2. Try a recent Chrome, Edge, Safari or Firefox.</div>
   </div>

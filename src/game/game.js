@@ -9,7 +9,8 @@ const WHITE = new THREE.Color(1, 1, 1), GOLD = new THREE.Color(1, 0.82, 0.45);
 const _v = new THREE.Vector3(), _c = new THREE.Color();
 const TEMPO_MAX = 16, TEMPO_TIME = 6.5;
 export const STRIKE_D = 1.6;            // depth of the plane where bolts meet the blade
-const RANKS = [[0, 'Novice'], [1500, 'Initiate'], [5000, 'Duelist'], [12000, 'Bretteur'], [24000, 'Maître'], [45000, 'Grand Maître']];
+const RANKS = [[0, 'Novice'], [1500, 'Initiate'], [5000, 'Duelist'], [12000, 'Bretteur'], [24000, 'Maître'], [45000, 'Grand Maître'], [90000, 'Virtuose'], [180000, 'Légende']];
+const QUOTES = { Novice: 'Everyone starts by being hit.', Initiate: 'You have learned where to stand.', Duelist: 'The court knows your name now.', Bretteur: 'They aim. You answer.', 'Maître': 'Nothing they send comes to rest.', 'Grand Maître': 'The masters study you.', Virtuose: 'You do not block. You conduct.', 'Légende': 'The eclipse dims a little when you light the blade.' };
 const BOSSES = ['maestro', 'hydra', 'bastion'];
 const BOSS_SUB = { maestro: 'It conducts. You answer.', hydra: 'Cut the leashes. Then the heart.', bastion: 'Only a hard swing cracks it.' };
 
@@ -88,7 +89,7 @@ export class Game {
     const boss = this.cfg.boss;
     const name = boss ? `${TYPES[boss].name}${this.cfg.tier ? ' ' + ROMAN(this.cfg.tier + 1) : ''}` : null;
     app.hud.setBout(n); app.hud.banner(boss ? 'A master approaches' : 'En garde', boss ? name.toUpperCase() : `BOUT ${ROMAN(n)}`, this.cfg.sub, 2300);
-    app.audio.music(boss ? 'boss' : 'bout'); app.audio.stinger(n); if (boss) app.audio.accent('boss'); app.audio.setPlaying(true);
+    app.audio.pace(clamp((n - 1) / 11)); app.audio.music(boss ? 'boss' : 'bout'); app.audio.stinger(n); if (boss) app.audio.accent('boss'); app.audio.setPlaying(true);
     app.env.setMood(boss ? TYPES[boss].color : null);
   }
   endBout() {
@@ -120,14 +121,14 @@ export class Game {
       const newBest = this.score > this.best;
       if (newBest) { this.best = this.score; try { localStorage.setItem('riposte.best', this.best); } catch {} }
       let rank = RANKS[0][1]; for (const [s, r] of RANKS) if (this.score >= s) rank = r;
-      this.result = { score: this.score, returned: this.returned, perfect: this.ripostes, streak: this.streak, bout: this.bout, rank, newBest, best: this.best };
+      this.result = { score: this.score, returned: this.returned, perfect: this.ripostes, streak: this.streak, bout: this.bout, rank, newBest, best: this.best, ranks: RANKS, quote: QUOTES[rank] || '' };
       app.hud.showHud(false); app.hud.boss(null); app.hud.showEnd(this.result); app.hud.setBest(this.best); app.audio.music('dead');
     }, true);
   }
   togglePause() {
     const { app } = this;
     if (this.state !== 'play' && !this.paused) return;
-    if (!this.paused) { this.paused = true; app.sword.retract(); app.pose = 'rest'; app.hud.screen('paused'); app.audio.setPlaying(false); app.audio.muffle(true); }
+    if (!this.paused) { this.paused = true; app.sword.retract(); app.pose = 'rest'; app.hud.showPause({ bout: this.bout, score: this.score, integrity: this.integrity, combo: this.combo }); app.audio.setPlaying(false); app.audio.muffle(true); }
     else { app.hud.screen(null); app.sword.ignite(); app.pose = 'play'; app.audio.muffle(false); this.after(0.7, () => { this.paused = false; app.audio.setPlaying(true); }, true); }
   }
   shareText() {

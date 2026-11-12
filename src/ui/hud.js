@@ -74,10 +74,34 @@ export class Hud {
     this.el.floaters.appendChild(s); setTimeout(() => s.remove(), 950);
   }
   hint(text) { const h = this.el.hint; if (text) { h.textContent = text; h.classList.add('show'); } else h.classList.remove('show'); }
+  // results: the numbers count up, the bars fill, the rank ladder shows how far the next rank is
   showEnd(s) {
-    $('rank').textContent = s.rank; $('finalScore').textContent = s.score.toLocaleString('en-US');
-    $('stReturned').textContent = s.returned; $('stPerfect').textContent = s.perfect; $('stStreak').textContent = s.streak; $('stBout').textContent = ROMAN(s.bout);
-    $('best').textContent = s.newBest ? 'New personal best' : s.best ? `Best ${s.best.toLocaleString('en-US')}` : '';
+    const fmt = (n) => Math.round(n).toLocaleString('en-US');
+    $('rank').textContent = s.rank; $('resQuote').textContent = s.quote || '';
+    const b = $('best'); b.textContent = s.newBest ? 'New personal best' : s.best ? 'Best ' + fmt(s.best) : ''; b.classList.toggle('new', !!s.newBest);
+    $('stBout').textContent = ROMAN(s.bout);
+    $('stPerfectPct').textContent = s.returned ? Math.round(100 * s.perfect / s.returned) + '% of returns' : '';
+    // ladder
+    const R = s.ranks, top = R[R.length - 1][0], pos = (v) => Math.pow(Math.min(v, top) / top, 0.3) * 100;
+    $('ladderMarks').innerHTML = R.map(([v, n]) => '<span style="left:' + pos(v) + '%" class="' + (s.score >= v ? 'got' : '') + '">' + n + '</span>').join('');
+    const next = R.find(([v]) => v > s.score);
+    $('ladderNext').textContent = next ? fmt(next[0] - s.score) + ' more for ' + next[1] : 'The highest rank there is';
+    for (const id of ['ladderFill', 'barBout', 'barReturned', 'barPerfect', 'barStreak']) $(id).style.width = '0';
     this.screen('end');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      $('ladderFill').style.width = pos(s.score) + '%';
+      $('barBout').style.width = Math.min(100, s.bout / 16 * 100) + '%';
+      $('barReturned').style.width = Math.min(100, s.returned / 150 * 100) + '%';
+      $('barPerfect').style.width = (s.returned ? 100 * s.perfect / s.returned : 0) + '%';
+      $('barStreak').style.width = (s.returned ? Math.min(100, 100 * s.streak / s.returned) : 0) + '%';
+    }));
+    const t0 = performance.now(), D = 1300; clearInterval(this._count);
+    const set = (k) => { const e = 1 - Math.pow(1 - k, 3); $('finalScore').textContent = fmt(s.score * e); $('stReturned').textContent = fmt(s.returned * e); $('stPerfect').textContent = fmt(s.perfect * e); $('stStreak').textContent = fmt(s.streak * e); };
+    set(0);
+    this._count = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / D); set(k); if (this.onCount && k < 1) this.onCount(); if (k >= 1) clearInterval(this._count); }, 40);
+  }
+  showPause(s) {
+    $('psBout').textContent = ROMAN(s.bout); $('psScore').textContent = s.score.toLocaleString('en-US'); $('psGuard').textContent = s.integrity + ' / 3'; $('psStreak').textContent = s.combo;
+    this.screen('paused');
   }
 }

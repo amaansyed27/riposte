@@ -19,6 +19,10 @@ npm run dev
 npm run build
 ```
 
+## Install
+
+Open the site and use **Install app** on the opening page (or your browser's install option). On iPhone or iPad: Share, then Add to Home Screen. Once installed it opens fullscreen and works offline.
+
 ## Controls
 
 | Input | How |

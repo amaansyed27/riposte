@@ -7,7 +7,7 @@ const ROOT = 146.83; // D3
 const note = (semi) => ROOT * Math.pow(2, semi / 12);
 
 export class Audio {
-  constructor() { this.vol = { music: 0.8, sfx: 1 }; try { for (const k of ['music', 'sfx']) { const v = localStorage.getItem('riposte.vol.' + k); if (v !== null && v !== '') this.vol[k] = +v; } } catch {} this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
+  constructor() { this.vol = { music: 0.8, sfx: 0.85, amb: 0.6 }; try { for (const k of ['music', 'sfx', 'amb']) { const v = localStorage.getItem('riposte.vol.' + k); if (v !== null && v !== '') this.vol[k] = +v; } } catch {} this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
 
   unlock() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
@@ -22,7 +22,7 @@ export class Audio {
     // reverb
     const len = ctx.sampleRate * 3.2, ir = ctx.createBuffer(2, len, ctx.sampleRate);
     for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
-    const conv = ctx.createConvolver(); conv.buffer = ir;
+    const conv = ctx.createConvolver(); conv.buffer = ir; this.conv = conv;
     this.wet = ctx.createGain(); this.wet.gain.value = 0.38; this.wet.connect(conv).connect(master);
     this.dry = ctx.createGain(); this.dry.connect(master);
     // noise buffer
@@ -31,9 +31,10 @@ export class Audio {
     this.noiseBuf = nb;
     this._hum(); this._rain(); this._pad();
     // the adaptive orchestral score; until its beds have loaded (or if they fail) the synthesized pad stands in
-    this.score = new Score(ctx, master, this.wet);
-    this.score.setState(this._musicState || 'menu'); this._applyVol();
-    this.score.load(import.meta.env.BASE_URL + 'audio/').then((ok) => { if (ok) { this.useScore = true; this.padGain.gain.setTargetAtTime(0, ctx.currentTime, 1.2); } });
+    this.score = new Score(ctx, master, conv);
+    this.score.setState(this._musicState || 'off'); this._applyVol();
+    // the synthesized pad only ever plays if the real beds cannot be loaded
+    this.score.load(import.meta.env.BASE_URL + 'audio/').then((ok) => { if (ok) this.useScore = true; else this.padGain.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5); });
     this.ready = true;
     this._sched = setInterval(() => this._music(), 40);
     this.nextT = ctx.currentTime + 0.1;
@@ -90,22 +91,23 @@ export class Audio {
   setHum(power, swing, over = 0) {
     if (!this.ready) return;
     const t = this.ctx.currentTime;
-    this.humGain.gain.setTargetAtTime(clamp(power, 0, 1.6) * (0.17 + swing * 0.2), t, 0.03);
+    this.humGain.gain.setTargetAtTime(clamp(power, 0, 1.6) * (0.085 + swing * 0.15), t, 0.03);
     this.humLP.frequency.setTargetAtTime(340 + swing * 2400 + power * 120 + over * 600, t, 0.04);
     const det = swing * 420 + (power - 1) * 500 + over * 700;
     for (const o of this.humOsc) o.detune.setTargetAtTime(det, t, 0.05);
-    this.swGain.gain.setTargetAtTime(Math.min(1, power) * swing * swing * 0.42, t, 0.03);
+    this.swGain.gain.setTargetAtTime(Math.min(1, power) * swing * swing * 0.26, t, 0.03);
     this.swBP.frequency.setTargetAtTime(420 + swing * 2300, t, 0.04);
     this.humFl.delayTime.setTargetAtTime(0.0065 - swing * 0.0042, t, 0.035);
   }
   _rain() {
     const ctx = this.ctx, hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
-    hp.type = 'highpass'; hp.frequency.value = 1400; lp.type = 'lowpass'; lp.frequency.value = 7500; g.gain.value = 0.045;
-    this._noise().connect(hp).connect(lp).connect(g).connect(this.dry);
+    this.ambG = ctx.createGain(); this.ambG.gain.value = this.vol.amb; this.ambG.connect(this.master);
+    hp.type = 'highpass'; hp.frequency.value = 1400; lp.type = 'lowpass'; lp.frequency.value = 7500; g.gain.value = 0.04;
+    this._noise().connect(hp).connect(lp).connect(g).connect(this.ambG);
     // low wind
     const bp = ctx.createBiquadFilter(), g2 = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 220; bp.Q.value = 0.6; g2.gain.value = 0.05;
     const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 0.09; lg.gain.value = 90; l.connect(lg).connect(bp.frequency); l.start();
-    this._noise().connect(bp).connect(g2).connect(this.wet);
+    this._noise().connect(bp).connect(g2).connect(this.ambG);
   }
   _pad() {
     const ctx = this.ctx;
@@ -117,11 +119,11 @@ export class Audio {
       const g = ctx.createGain(); g.gain.value = 0.045; o.connect(g).connect(this.padLP); o.start(); o.semi = semi; this.padOsc.push(o);
     }
     this.padLP.connect(this.padGain); this.padGain.connect(this.wet); const d = ctx.createGain(); d.gain.value = 0.4; this.padGain.connect(d).connect(this.dry);
-    this.padGain.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5);
   }
   setIntensity(x) { this.intensity = clamp(x); if (this.score) this.score.setIntensity(x); }
   // where the game is: menu | select | bout | boss | rest | win | dead
   music(state) { this._musicState = state; if (this.score) this.score.setState(state); }
+  pace(p) { if (this.score) this.score.setPace(p); this._pace = p; }
   accent(kind) { if (this.useScore) this.score.accent(kind); }
   muffle(on) { if (this.score) this.score.setMuffle(on); }
   setPlaying(p) { this.playing = p; }
@@ -211,8 +213,10 @@ export class Audio {
   death() { if (!this.ready) return; if (this.useScore) { this.score.death(); return; } this._tone('sawtooth', note(-12), note(-24), 2.4, 0.4, { wet: 1, filter: { f: 600, q: 2 } }); this._tone('sine', note(3), note(-9), 2.8, 0.2, { wet: 1 }); }
   thunder(delay = 1) {
     if (!this.ready) return;
-    this._burst('lowpass', 420, 60, 0.6, 3.4, 0.85, { delay, wet: 1, attack: 0.08 });
-    this._burst('lowpass', 1500, 120, 0.8, 0.6, 0.4, { delay, wet: 0.8, attack: 0.01 });
+    const a = this.vol.amb;    // thunder belongs to the weather, and sits behind the music
+    if (a <= 0.01) return;
+    this._burst('lowpass', 420, 60, 0.6, 3.4, 0.5 * a, { delay, wet: 1, attack: 0.08 });
+    this._burst('lowpass', 1500, 120, 0.8, 0.6, 0.22 * a, { delay, wet: 0.8, attack: 0.01 });
   }
   tempo(on) {
     if (!this.ready) return;
@@ -252,7 +256,8 @@ export class Audio {
   _applyVol() {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.dry.gain.setTargetAtTime(this.vol.sfx, t, 0.05); this.wet.gain.setTargetAtTime(0.38 * this.vol.sfx, t, 0.05);
-    if (this.score) { this.score.bus.gain.setTargetAtTime(0.62 * this.vol.music / 0.8, t, 0.05); this.score.acc.gain.setTargetAtTime(0.9 * this.vol.music / 0.8, t, 0.05); }
+    if (this.ambG) this.ambG.gain.setTargetAtTime(this.vol.amb, t, 0.05);
+    if (this.score) { const m = this.vol.music / 0.8; this.score.bus.gain.setTargetAtTime(0.72 * m, t, 0.05); this.score.acc.gain.setTargetAtTime(0.85 * m, t, 0.05); this.score.rh.gain.setTargetAtTime(0.8 * m, t, 0.05); }
   }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
   sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }

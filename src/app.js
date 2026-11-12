@@ -14,6 +14,7 @@ import { Hud } from './ui/hud.js';
 import { Gamepads } from './input/gamepad.js';
 import { Remote } from './input/remote.js';
 import { Nav } from './ui/nav.js';
+import { Settings } from './core/settings.js';
 import { clamp, damp, lerp, noise1, isTouch } from './core/util.js';
 
 const canvas = document.getElementById('gl');
@@ -167,6 +168,7 @@ function toSelect(resume = false) {
   if (leaving) return;
   app.audio.unlock();
   if (coarse && !motion.on) enableMotion();       // tilt effects on phones; silently skipped if refused
+  if (coarse && !standalone) goLandscape();
   // the first click IS the ignition: the blade lights in your hand on the opening page, then the page turns
   leaving = true; app.pose = 'title'; app.sword.ignite(); $('intro').classList.add('out'); app.audio.music('select'); app.audio.accent('ignite');
   app.later(1.15, () => { leaving = false; $('intro').classList.remove('out'); if (app.hud.current !== 'intro') return; if (resume === true && app.game.saved()) app.game.start(true); else app.hud.screen('select'); });
@@ -182,14 +184,46 @@ function confirm() {
 // "take me back one step", wherever you are
 function back() {
   const c = app.hud.current;
-  if (c === 'credits') closeCredits(); else if (c === 'controls' || c === 'select') toIntro();
+  if (c === 'credits') closeCredits(); else if (c === 'controls') closeSettings(); else if (c === 'select') toIntro();
   else if (c === 'paused') app.game.togglePause(); else if (c === 'end') app.game.home();
   else if (!c) app.game.togglePause();
 }
+// ---------- settings: full screen, categories on the left; from a paused bout only the safe ones are offered
+function setTab(name) {
+  for (const t of document.querySelectorAll('#setTabs .tab')) t.classList.toggle('on', t.dataset.tab === name);
+  for (const p of document.querySelectorAll('#setPanes .pane')) p.classList.toggle('hidden', p.dataset.pane !== name);
+  $('setPanes').scrollTop = 0;
+  if (name === 'game') { const sv = app.game.saved(); $('runDesc').textContent = sv ? 'Bout ' + ROMAN(sv.bout) + ' · ' + sv.score.toLocaleString('en-US') + ' points' : 'No run in progress.'; $('bestDesc').textContent = app.game.best ? app.game.best.toLocaleString('en-US') : 'None yet'; }
+}
+function openSettings(ctx = 'menu') { app.audio.unlock(); app.audio.ui(); $('controls').dataset.ctx = ctx; setTab('audio'); syncMute(); if (ctx === 'menu') app.pose = 'away'; app.hud.screen('controls'); }
+function closeSettings() { app.audio.ui(); if ($('controls').dataset.ctx === 'pause') app.hud.screen('paused'); else toIntro(); }
+function syncMute() { for (const b of $('segMute').children) b.setAttribute('aria-pressed', String((b.dataset.v === 'on') === app.audio.muted)); }
+for (const t of document.querySelectorAll('#setTabs .tab')) t.addEventListener('click', () => setTab(t.dataset.tab));
+$('segMute').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if ((b.dataset.v === 'on') !== app.audio.muted) toggleSound(); syncMute(); });
+$('pauseSettings').addEventListener('click', () => openSettings('pause'));
+$('btnReplayIntro').addEventListener('click', () => { location.href = location.pathname + '?intro'; });
+$('btnResetTut').addEventListener('click', (e) => { try { localStorage.removeItem('riposte.tut'); } catch {} e.target.textContent = 'Done'; });
+$('btnDropRun').addEventListener('click', (e) => { app.game.forget(); app.refreshMenu(); setTab('game'); e.target.textContent = 'Done'; });
+$('btnResetBest').addEventListener('click', (e) => { app.game.best = 0; try { localStorage.removeItem('riposte.best'); } catch {} app.refreshMenu(); setTab('game'); e.target.textContent = 'Done'; });
+// ---------- install as an app (Chromium offers a prompt; on iPhone it is a manual step)
+let installEvt = null;
+const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function syncInstall() {
+  const can = !!installEvt && !standalone;
+  $('btnInstallMenu').classList.toggle('hidden', !can); $('btnInstall').classList.toggle('hidden', !can);
+  $('installDesc').textContent = standalone ? 'Installed. You are running it as an app.' : can ? 'Add RIPOSTE to your device as an app. It opens fullscreen and works offline.' : isIOS ? 'On iPhone or iPad: tap Share, then “Add to Home Screen”.' : 'Use your browser’s menu: “Install RIPOSTE” or “Add to Home screen”.';
+}
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; syncInstall(); });
+addEventListener('appinstalled', () => { installEvt = null; syncInstall(); });
+async function install() { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch {} installEvt = null; syncInstall(); }
+$('btnInstall').addEventListener('click', install); $('btnInstallMenu').addEventListener('click', install);
+syncInstall();
+
 // every screen change: cursor back, one item selected, the right hints
 const nav = new Nav(app);
 const _screen = app.hud.screen.bind(app.hud);
-app.hud.screen = (name) => { _screen(name); document.body.classList.toggle('menu', !!name); nav.sync(); };
+app.hud.screen = (name) => { _screen(name); document.body.classList.toggle('menu', !!name); if (name) { app.hud.el.banner.classList.remove('show'); app.hud.hint(null); } nav.sync(); };
 
 // ---------- rolling credits: scrolls over the court to the theme; pause, hold to hurry, back out any time
 const roll = { y: 0, paused: false, fast: false, el: $('roll') };
@@ -210,11 +244,11 @@ app.refreshMenu = () => {
 };
 $('btnBack').addEventListener('click', toIntro);
 $('btnEnter').addEventListener('click', () => { app.audio.unlock(); app.game.start(); });
-$('btnControls').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); });
-$('btnCtlClose').addEventListener('click', () => { app.audio.ui(); app.hud.screen('intro'); });
+$('btnControls').addEventListener('click', () => openSettings('menu'));
+$('btnCtlClose').addEventListener('click', closeSettings);
 $('btnCredits').addEventListener('click', openCredits);
 $('btnCreditsClose').addEventListener('click', closeCredits);
-for (const [id, kind] of [['volMusic', 'music'], ['volSfx', 'sfx']]) { const el = $(id); el.value = Math.round(app.audio.vol[kind] * 100); el.addEventListener('input', () => { app.audio.unlock(); app.audio.setVol(kind, el.value / 100); if (kind === 'sfx') app.audio.tick(); }); }
+for (const [id, kind] of [['volMusic', 'music'], ['volSfx', 'sfx'], ['volAmb', 'amb']]) { const el = $(id); el.value = Math.round(app.audio.vol[kind] * 100); const out = el.parentElement.querySelector('output'); out.textContent = el.value + '%'; el.addEventListener('input', () => { out.textContent = el.value + '%'; app.audio.unlock(); app.audio.setVol(kind, el.value / 100); if (kind === 'sfx') app.audio.tick(); }); }
 $('btnPhone').addEventListener('click', async () => {
   $('pairBox').classList.remove('hidden');
   try { $('pairUrl').textContent = await remote.start($('qr')); } catch (e) { $('pairStatus').textContent = 'Could not start pairing: ' + (e.message || e); }
@@ -229,7 +263,7 @@ async function setAim(tilt) {
 }
 $('btnMotion').addEventListener('click', () => setAim(!motion.aim));
 $('btnAim').addEventListener('click', () => setAim(!motion.aim));
-$('btnSaber').addEventListener('click', () => { app.audio.unlock(); app.audio.ui(); app.hud.screen('controls'); $('btnPhone').click(); });
+$('btnSaber').addEventListener('click', () => { openSettings('menu'); setTab('controls'); $('btnPhone').click(); });
 if (!navigator.hid) $('gyroRow').classList.add('hidden');
 if (!coarse) $('motionRow').classList.add('hidden');
 
@@ -305,7 +339,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && ap
 try { if (localStorage.getItem('riposte.mute')) { app.audio.muted = true; app.hud.el.btnSound.classList.add('off'); } } catch {}
 canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); const fb = document.getElementById('fallback'); fb.textContent = 'The graphics context was lost. Reload the page to continue — your run is saved.'; fb.classList.remove('hidden'); });
 
-function toggleSound() { const m = !app.audio.muted; app.audio.setMuted(m); app.hud.el.btnSound.classList.toggle('off', m); checkSound(); }
+function toggleSound() { const m = !app.audio.muted; app.audio.setMuted(m); app.hud.el.btnSound.classList.toggle('off', m); checkSound(); syncMute(); }
 app.hud.el.btnSound.addEventListener('click', () => { app.audio.unlock(); toggleSound(); });
 app.hud.el.btnPause.addEventListener('click', () => app.game.togglePause());
 $('resume').addEventListener('click', () => app.game.togglePause());
@@ -327,18 +361,35 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && app
 function resize() {
   const w = innerWidth, h = innerHeight;
   app.size.w = w; app.size.h = h; app.aspect = w / h;
-  const pr = Math.min(devicePixelRatio || 1, coarse ? 1.6 : 2) * app.quality;
+  const gv = app.settings ? app.settings.v : { scale: 100, reflections: coarse ? 'low' : 'high' };
+  const pr = Math.max(0.5, Math.min(devicePixelRatio || 1, coarse ? 1.6 : 2) * app.quality * gv.scale / 100);
   renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
   camera.aspect = app.aspect; camera.fov = app.aspect < 0.8 ? 74 : app.aspect < 1.2 ? 66 : 60; app.baseFov = camera.fov;
   camera.updateProjectionMatrix();
   app.post.setSize(w, h, pr);
-  const rs = coarse ? 0.4 : 0.55;
-  app.env.setReflectionSize(Math.round(w * pr * rs), Math.round(h * pr * rs));
+  const rs = gv.reflections === 'off' ? 0.06 : gv.reflections === 'low' ? 0.3 : coarse ? 0.42 : 0.55;
+  app.env.setReflectionSize(Math.max(16, Math.round(w * pr * rs)), Math.max(16, Math.round(h * pr * rs)));
+  checkRotate();
   app.fx.glows.uScale.value = (h * pr) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   app.input.set(app.input.ndc.x, app.input.ndc.y);
 }
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 200));
-resize();
+if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => setTimeout(resize, 120));
+// ---------- phones: ask for landscape + fullscreen, and hold it there where the browser allows
+let rotSkipped = false; try { rotSkipped = !!sessionStorage.getItem('riposte.portrait'); } catch {}
+function checkRotate() { const el = $('rotate'); if (!el) return; el.classList.toggle('hidden', !(coarse && innerHeight > innerWidth * 1.05 && !rotSkipped && !document.getElementById('boot'))); }
+async function goLandscape() {
+  try { if (!isFs() && canFs) await (fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen).call(fsRoot, { navigationUI: 'hide' }); } catch {}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch {}
+  setTimeout(resize, 250);
+}
+$('btnRotGo').addEventListener('click', () => { app.audio.unlock(); goLandscape().then(() => { if (innerHeight > innerWidth) { $('rotate').querySelector('p').textContent = 'Your browser will not turn the screen for us. Turn the phone sideways and it will follow.'; } }); });
+$('btnRotSkip').addEventListener('click', () => { rotSkipped = true; try { sessionStorage.setItem('riposte.portrait', '1'); } catch {} checkRotate(); });
+$('btnLandscape').addEventListener('click', goLandscape);
+if (!coarse) $('landRow').classList.add('hidden');
+app.resize = resize;
+app.settings = new Settings(app, $('controls'));
+app.settings.apply();
 
 // ---------- sword pose targets (camera space)
 function poseTargets(dt) {
@@ -389,7 +440,8 @@ function frame(rdt, draw = true) {
 
   // camera feel: breathing sway, trauma shake, recoil kick, fov punch
   app.trauma = Math.max(0, app.trauma - rdt * 1.5);
-  const sh = app.trauma * app.trauma, t = app.time;
+  const gfx = app.settings.v;
+  const sh = app.trauma * app.trauma * (gfx.shake / 100), t = app.time;
   app.kickV = damp(app.kickV, 0, 9, rdt); app.fovPunch = damp(app.fovPunch, 0, 7, rdt);
   camera.position.set((noise1(t * 31) - 0.5) * sh * 0.09, (noise1(t * 29 + 7) - 0.5) * sh * 0.09 + Math.sin(t * 0.8) * 0.006, app.kickV * 0.035);
   camera.rotation.set((noise1(t * 27 + 3) - 0.5) * sh * 0.05 + app.kickV * 0.012, (noise1(t * 33 + 9) - 0.5) * sh * 0.05 + Math.sin(t * 0.33) * 0.004, (noise1(t * 25 + 5) - 0.5) * sh * 0.06);
@@ -422,10 +474,12 @@ function frame(rdt, draw = true) {
   app.audio.setHum(app.sword.power * clamp(app.sword.len * 2), app.sword.swing, app.sword.over);
   // eyes adapt: ignition blows out then settles; darkness slowly resolves after retraction
   const target = lerp(1.5, 1.15, clamp(app.sword.light));
-  exposure = damp(exposure, target, target < exposure ? 7 : 0.55, rdt);
+  // in a bout the dark after a sheathe resolves slowly; on menus it must not leave you staring at black
+  exposure = damp(exposure, target, target < exposure ? 7 : (g.state === 'play' || g.state === 'intermission') && !g.paused ? 0.55 : 2.6, rdt);
   renderer.toneMappingExposure = exposure;
   const pu = app.post.u;
-  pu.uCA.value = 0.0012 + sh * 0.012 + Math.abs(app.kickV) * 0.0025 + (g.tempoLive > 0 ? 0.002 : 0);
+  const film = gfx.film === 'on' ? 1 : 0; pu.uGrain.value = 0.035 * film;
+  pu.uCA.value = 0.0012 * film + sh * 0.012 + Math.abs(app.kickV) * 0.0025 + (g.tempoLive > 0 ? 0.002 : 0);
   pu.uHit.value = g.hitFlash; pu.uDesat.value = damp(pu.uDesat.value, g.tempoLive > 0 ? 0.5 : g.state === 'dead' ? 0.7 : 0, 5, rdt);
   app.post.bloom.strength = 0.36 + (g.tempoLive > 0 ? 0.14 : 0) + Math.max(0, app.sword.power - 1) * 0.12;
   app.post.update(rdt, app.time);
@@ -441,7 +495,8 @@ function loop(now) {
   fpsAcc += dt; fpsN++;
   if (fpsN >= 45) {
     const avg = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0;
-    if (avg > 1 / 42 && !document.hidden) { lowT++; if (lowT >= 2 && app.quality > 0.55) { app.quality = Math.max(0.55, app.quality - 0.15); lowT = 0; resize(); } } else lowT = 0;
+    $('fps').textContent = Math.round(1 / avg);
+    if (app.settings.v.adaptive === 'on' && avg > 1 / 42 && !document.hidden) { lowT++; if (lowT >= 2 && app.quality > 0.55) { app.quality = Math.max(0.55, app.quality - 0.15); lowT = 0; resize(); } } else lowT = 0;
   }
 }
 requestAnimationFrame(loop);
@@ -496,7 +551,12 @@ async function preload(report) {
   await Promise.all(beds.map((b) => fetch(base + 'audio/' + b + '.mp3').then((r) => r.arrayBuffer()).catch(() => {}).then(() => report(0.7 + 0.3 * (++n / beds.length), 4))));
 }
 app.onBootDone = () => {
-  booting = false; last = performance.now(); app.refreshMenu(); app.hud.screen('intro'); app.audio.music('menu');
+  booting = false; last = performance.now(); app.refreshMenu();
+  // the staged entrance plays once, on arrival; every later return to the menu is immediate
+  app.hud.onCount = () => app.audio.tick();
+  setTimeout(checkRotate, 1300);          // once the loader overlay is gone
+  const intro = $('intro'); intro.classList.add('first'); setTimeout(() => intro.classList.remove('first'), 4300);
+  app.hud.screen('intro'); app.audio.music('menu');
   // try to start sound straight away (allowed when the browser already trusts this page); otherwise the hint asks for a click
   app.audio.unlock(); setTimeout(checkSound, 500);
 };

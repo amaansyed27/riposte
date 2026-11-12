@@ -24,6 +24,7 @@ export class Nav {
       el.classList.add('sel');
       if (!byMouse) { try { el.focus({ preventScroll: true }); } catch {} if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
       this.app.audio.tick();
+      if (!byMouse && el.classList.contains('tab')) el.click();       // moving onto a category opens it
     }
     if (this.desc) this.desc.textContent = (el && el.dataset.desc) || '';
   }
@@ -34,7 +35,7 @@ export class Nav {
     this.hint.classList.toggle('hidden', !it.length);
     this.setPad(this.pad);
     if (!it.length) { if (this.desc) this.desc.textContent = ''; return; }
-    const def = it.find((b) => b.classList.contains('primary')) || it.find((b) => b.getAttribute('aria-checked') === 'true') || it[0];
+    const def = it.find((b) => b.classList.contains('tab') && b.classList.contains('on')) || it.find((b) => b.classList.contains('primary')) || it.find((b) => b.getAttribute('aria-checked') === 'true') || it[0];
     def.classList.add('sel'); this.sel = def;
     if (this.desc) this.desc.textContent = def.dataset.desc || '';
   }
@@ -46,6 +47,8 @@ export class Nav {
   // left / right: nudge a slider if one is selected, otherwise move like up / down
   side(d) {
     const s = this.sel;
+    if (s && s.classList.contains('tab') && d > 0) { const it = this.items(), first = it.find((b) => b.closest('.pane')); if (first) this.select(first); return; }
+    if (s && s.closest && s.closest('.pane') && d < 0 && !(s.type === 'range') && !(s.parentElement.classList.contains('seg') && s.previousElementSibling)) { const tab = document.querySelector('#setTabs .tab.on'); if (tab) { this.select(tab); return; } }
     if (s && s.type === 'range') { s.value = Math.max(+s.min, Math.min(+s.max, +s.value + d * 5)); s.dispatchEvent(new Event('input', { bubbles: true })); return; }
     this.move(d);
   }
