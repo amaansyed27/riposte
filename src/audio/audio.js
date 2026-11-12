@@ -101,14 +101,20 @@ export class Audio {
   }
   _rain() {
     const ctx = this.ctx, hp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
-    this.ambG = ctx.createGain(); this.ambG.gain.value = this.vol.amb; this.ambG.connect(this.master);
-    hp.type = 'highpass'; hp.frequency.value = 1400; lp.type = 'lowpass'; lp.frequency.value = 7500; g.gain.value = 0.04;
+    this.ambG = ctx.createGain(); this.ambG.gain.value = this.vol.amb * (this.scene ? 1 : 0); this.ambG.connect(this.master);
+    // rain is a soft, dark patter rather than a hiss, and it follows the Rain graphics setting (off = silent)
+    hp.type = 'highpass'; hp.frequency.value = 700; lp.type = 'lowpass'; lp.frequency.value = 3600; lp.Q.value = 0.3; g.gain.value = 0.03 * this._rainK();
+    this.rainG = g;
     this._noise().connect(hp).connect(lp).connect(g).connect(this.ambG);
     // low wind
     const bp = ctx.createBiquadFilter(), g2 = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 220; bp.Q.value = 0.6; g2.gain.value = 0.05;
     const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 0.09; lg.gain.value = 90; l.connect(lg).connect(bp.frequency); l.start();
     this._noise().connect(bp).connect(g2).connect(this.ambG);
   }
+  _rainK() { return { off: 0, light: 0.45 }[this.rainLevel] ?? 1; }
+  setRain(level) { this.rainLevel = level; if (this.rainG) this.rainG.gain.setTargetAtTime(0.03 * this._rainK(), this.ctx.currentTime, 0.3); }
+  // the weather is only heard once the court is on screen (not under the opening cards)
+  setScene(on) { this.scene = on; if (this.ambG) this.ambG.gain.setTargetAtTime(on ? this.vol.amb : 0, this.ctx.currentTime, on ? 0.9 : 0.1); }
   _pad() {
     const ctx = this.ctx;
     this.padGain = ctx.createGain(); this.padGain.gain.value = 0.0;
@@ -256,7 +262,7 @@ export class Audio {
   _applyVol() {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.dry.gain.setTargetAtTime(this.vol.sfx, t, 0.05); this.wet.gain.setTargetAtTime(0.38 * this.vol.sfx, t, 0.05);
-    if (this.ambG) this.ambG.gain.setTargetAtTime(this.vol.amb, t, 0.05);
+    if (this.ambG) this.ambG.gain.setTargetAtTime(this.scene ? this.vol.amb : 0, t, 0.05);
     if (this.score) { const m = this.vol.music / 0.8; this.score.bus.gain.setTargetAtTime(0.72 * m, t, 0.05); this.score.acc.gain.setTargetAtTime(0.85 * m, t, 0.05); this.score.rh.gain.setTargetAtTime(0.8 * m, t, 0.05); }
   }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }

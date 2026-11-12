@@ -569,7 +569,7 @@ app.onBootDone = () => {
   app.hud.onCount = () => app.audio.tick();
   setTimeout(checkRotate, 1300);          // once the loader overlay is gone
   const intro = $('intro'); intro.classList.add('first'); setTimeout(() => intro.classList.remove('first'), 4300);
-  app.hud.screen('intro'); app.audio.music('menu');
+  app.hud.screen('intro'); app.audio.music('menu'); app.audio.setScene(true);
   // try to start sound straight away (allowed when the browser already trusts this page); otherwise the hint asks for a click
   app.audio.unlock(); setTimeout(checkSound, 500);
 };

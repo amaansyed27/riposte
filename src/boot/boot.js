@@ -3,7 +3,6 @@
 //   back within a week     -> straight to the menu (a short loader only if something still has to compile)
 //   back after a long gap  -> the sequence again, with Skip, since the browser's shader cache is probably cold
 import '@fontsource/cinzel/700.css';
-import '@fontsource/cinzel/900.css';
 
 const $ = (id) => document.getElementById(id);
 const WEEK = 7 * 24 * 3600 * 1000;
@@ -55,41 +54,39 @@ function engine(root) {
   root.querySelectorAll('.en-text > *').forEach((t, i) => t.animate([{ opacity: 0, letterSpacing: '.6em' }, { opacity: 1, letterSpacing: '.28em' }], { duration: 900, delay: 350 + i * 250, easing: 'ease-out', fill: 'both' }));
   return () => { live = false; };
 }
+// The name is drawn, not typed: monoline capitals built from a few strokes (open-topped A, no crossbar),
+// with one fine cut running through the whole word like a blade's path. Used as a mask over brushed silver.
+const GLYPH = {
+  A: [86, 'M9,114 L43,0 L77,114'],
+  M: [86, 'M8,110 V0 L43,62 L78,0 V110'],
+  N: [74, 'M8,110 V0 L66,104 V-6'],
+  S: [64, 'M57,26 C57,12 46,8 32,8 C17,8 7,17 7,30 C7,46 20,50 32,54 C46,58 57,63 57,78 C57,92 46,96 32,96 C17,96 7,90 7,76'],
+  Y: [88, 'M7,-10 L44,54 L81,-10 M44,52 V110'],
+  E: [58, 'M58,8 H8 V96 H58 M8,52 H48'],
+  D: [72, 'M8,8 H30 A44,44 0 0 1 30,96 H8 Z'],
+};
+function lettering(text, gap = 40, space = 56) {
+  let x = 0, d = '';
+  for (const ch of text) { if (ch === ' ') { x += space; continue; } const [w, p] = GLYPH[ch]; d += `<path transform="translate(${x} 0)" d="${p}"/>`; x += w + gap; }
+  const W = x - gap, H = 104;
+  // letters are clipped to the cap height so every stroke ends square; the cut is a thin slanted gap
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><clipPath id="c"><rect y="0" width="${W}" height="${H}"/></clipPath><mask id="m"><rect width="${W}" height="${H}" fill="#fff"/><path d="M-10,${H * 0.66} L${W + 10},${H * 0.4}" stroke="#000" stroke-width="3.2"/></mask></defs><g clip-path="url(#c)" mask="url(#m)" fill="none" stroke="#fff" stroke-width="16" stroke-linejoin="miter" stroke-miterlimit="1.6">${d}</g></svg>`;
+  return { url: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`, ar: W / H };
+}
 function author(root) {
-  const name = root.querySelector('.au-name'), text = name.dataset.text;
-  if (!name.children.length) for (const ch of text) { const sp = document.createElement('span'); if (ch === ' ') sp.className = 'sp'; else sp.textContent = ch; name.appendChild(sp); }
-  const letters = [...name.children].filter((x) => !x.classList.contains('sp'));
-  // a corona opens behind the name as it is struck
-  root.querySelector('.au-sun').animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(.55)' }, { opacity: 0.95, transform: 'translate(-50%,-50%) scale(1)' }], { duration: 2600, easing: OUT, fill: 'both' });
-  root.querySelector('.au-by').animate([{ opacity: 0, letterSpacing: '1.2em' }, { opacity: 1, letterSpacing: '.6em' }], { duration: 900, easing: 'ease-out', fill: 'both' });
-  // each letter is hammered in: it drops, white-hot and oversized, and rings into place
-  letters.forEach((el, i) => {
-    el.animate([{ opacity: 0, transform: 'translateY(-.45em) scale(1.7)', filter: 'blur(9px) brightness(4)' }, { opacity: 1, transform: 'translateY(.04em) scale(.96)', filter: 'blur(0) brightness(2)', offset: 0.7 }, { opacity: 1, transform: 'none', filter: 'blur(0) brightness(1)' }], { duration: 460, delay: 300 + i * 95, easing: 'cubic-bezier(.3,.9,.3,1)', fill: 'both' });
-    // then a light crosses the metal, letter to letter, and settles on the highlight
-    el.animate([{ backgroundPosition: '120% 0' }, { backgroundPosition: '-15% 0', offset: 0.6 }, { backgroundPosition: '48% 0' }], { duration: 1500, delay: 1350 + i * 70, easing: 'ease-in-out', fill: 'both' });
-  });
-  const T = 300 + letters.length * 95 + 200;
-  // a blade ignites from the hilt outward under the name
-  root.querySelector('.au-blade i').animate([{ transform: 'scaleX(0)', filter: 'brightness(3)' }, { transform: 'scaleX(1.03)', filter: 'brightness(1.6)', offset: 0.75 }, { transform: 'scaleX(1)', filter: 'brightness(1)' }], { duration: 520, delay: T, easing: 'cubic-bezier(.1,.8,.2,1)', fill: 'both' });
-  root.querySelector('.au-sub').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: T + 450, easing: 'ease-out', fill: 'both' });
-  root.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }], { duration: 4600, easing: 'linear', fill: 'both' });
-  // sparks thrown off the blade as it lights
-  const cv = root.querySelector('.au-sparks'), g = cv.getContext('2d'), W = cv.width, H = cv.height, P = [];
-  let live = true, born = false; const t0 = performance.now();
-  const tick = () => {
-    if (!live) return; requestAnimationFrame(tick);
-    const t = performance.now() - t0;
-    if (!born && t > T) { born = true; for (let i = 0; i < 110; i++) { const side = Math.random() < 0.5 ? -1 : 1, u = Math.random(); P.push({ x: W / 2 + side * u * W * 0.4, y: H * 0.5, vx: side * (40 + Math.random() * 260), vy: -(60 + Math.random() * 260) * (Math.random() < 0.8 ? 1 : -0.5), life: 0.5 + Math.random() * 0.9, age: -u * 0.3 }); } }
-    g.clearRect(0, 0, W, H); g.lineCap = 'round';
-    for (const p of P) {
-      p.age += 1 / 60; if (p.age < 0 || p.age > p.life) continue;
-      p.vy += 520 / 60; p.x += p.vx / 60; p.y += p.vy / 60;
-      const k = 1 - p.age / p.life; g.strokeStyle = `rgba(${200 + 55 * k | 0},255,${225 + 30 * k | 0},${k})`; g.lineWidth = 1 + k * 1.6;
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.022, p.y - p.vy * 0.022); g.stroke();
-    }
-  };
-  tick();
-  return () => { live = false; };
+  // restraint reads as royal: the capitals gather out of a wide, soft haze, two hairlines open from the centre,
+  // then a single light crosses the silver and catches on the last letter
+  const q = (c) => root.querySelector(c), EASE = 'cubic-bezier(.16,.7,.2,1)';
+  const L = lettering('AMAAN SYED'); q('.au-name').style.setProperty('--letters', L.url); q('.au-name').style.setProperty('--ar', L.ar);
+  q('.au-haze').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 2400, easing: 'ease-out', fill: 'both' });
+  q('.au-by').animate([{ opacity: 0, letterSpacing: '1.1em' }, { opacity: 1, letterSpacing: '.7em' }], { duration: 1000, easing: 'ease-out', fill: 'both' });
+  root.querySelectorAll('.au-rule').forEach((r) => r.animate([{ transform: 'scaleX(0)', opacity: 0 }, { transform: 'scaleX(1)', opacity: 1 }], { duration: 1300, delay: 300, easing: EASE, fill: 'both' }));
+  const SH = 'drop-shadow(0 0 2px rgba(190,220,255,.5)) drop-shadow(0 0 28px rgba(110,170,255,.38))';
+  q('.au-name').animate([{ opacity: 0, transform: 'scaleX(1.32)', filter: `blur(16px) ${SH}` }, { opacity: 1, offset: 0.55 }, { opacity: 1, transform: 'scaleX(1)', filter: `blur(0px) ${SH}` }], { duration: 1700, delay: 350, easing: EASE, fill: 'both' });
+  q('.au-ink').animate([{ backgroundPosition: '120% 0, 0 0' }, { backgroundPosition: '-20% 0, 0 0' }], { duration: 1500, delay: 1750, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'both' });
+  q('.au-star').animate([{ transform: 'translate(50%,-50%) scale(0) rotate(0deg)', opacity: 0 }, { transform: 'translate(50%,-50%) scale(1) rotate(35deg)', opacity: 1, offset: 0.35 }, { transform: 'translate(50%,-50%) scale(0) rotate(80deg)', opacity: 0 }], { duration: 900, delay: 2750, easing: 'ease-out', fill: 'both' });
+  q('.au-sub').animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 900, delay: 1900, easing: 'ease-out', fill: 'both' });
+  root.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }], { duration: 4700, easing: 'linear', fill: 'both' });
 }
 const CARDS = [
   { id: 'cDawn', run: dawnlight, hold: 2900, sound: 'dawn' },

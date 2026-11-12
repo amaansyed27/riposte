@@ -36,6 +36,7 @@ export class Settings {
     app.post.bloom.enabled = v.bloom === 'on';
     const rain = app.env.rain, n = rain.geometry.attributes.position.count;
     rain.visible = v.rain !== 'off'; rain.geometry.setDrawRange(0, v.rain === 'light' ? Math.floor(n * 0.4 / 2) * 2 : n);
+    app.audio.setRain(v.rain);
     const fps = document.getElementById('fps'); if (fps) fps.classList.toggle('hidden', v.fps !== 'on');
     if (v.adaptive !== 'on') app.quality = 1;
     app.resize();
