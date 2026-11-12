@@ -65,7 +65,7 @@ const GLYPH = {
   E: [58, 'M58,8 H8 V96 H58 M8,52 H48'],
   D: [72, 'M8,8 H30 A44,44 0 0 1 30,96 H8 Z'],
 };
-function lettering(text, gap = 40, space = 56) {
+export function lettering(text, gap = 40, space = 56) {
   let x = 0, d = '';
   for (const ch of text) { if (ch === ' ') { x += space; continue; } const [w, p] = GLYPH[ch]; d += `<path transform="translate(${x} 0)" d="${p}"/>`; x += w + gap; }
   const W = x - gap, H = 104;

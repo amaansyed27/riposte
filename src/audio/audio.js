@@ -7,13 +7,14 @@ const ROOT = 146.83; // D3
 const note = (semi) => ROOT * Math.pow(2, semi / 12);
 
 export class Audio {
-  constructor() { this.vol = { music: 0.8, sfx: 0.85, amb: 0.6 }; try { for (const k of ['music', 'sfx', 'amb']) { const v = localStorage.getItem('riposte.vol.' + k); if (v !== null && v !== '') this.vol[k] = +v; } } catch {} this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
+  // given: an OfflineAudioContext, for rendering a soundtrack without real time (dev trailer capture)
+  constructor(given = null) { this._given = given; this.vol = { music: 0.8, sfx: 0.85, amb: 0.6 }; try { for (const k of ['music', 'sfx', 'amb']) { const v = localStorage.getItem('riposte.vol.' + k); if (v !== null && v !== '') this.vol[k] = +v; } } catch {} this.ctx = null; this.muted = false; this.ready = false; this.intensity = 0; this.playing = false; this.step = 0; }
 
   unlock() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = (this.ctx = new AC());
+    if (!AC && !this._given) return;
+    const ctx = (this.ctx = this._given || new AC());
     ctx.onstatechange = () => { if (this.onState) this.onState(ctx.state); };
     const master = (this.master = ctx.createGain()); master.gain.value = this.muted ? 0 : 0.9;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
@@ -31,12 +32,12 @@ export class Audio {
     this.noiseBuf = nb;
     this._hum(); this._rain(); this._pad();
     // the adaptive orchestral score; until its beds have loaded (or if they fail) the synthesized pad stands in
-    this.score = new Score(ctx, master, conv);
+    this.score = new Score(ctx, master, conv, !!this._given);
     this.score.setState(this._musicState || 'off'); this._applyVol();
     // the synthesized pad only ever plays if the real beds cannot be loaded
     this.score.load(import.meta.env.BASE_URL + 'audio/').then((ok) => { if (ok) this.useScore = true; else this.padGain.gain.setTargetAtTime(0.5, ctx.currentTime, 2.5); });
     this.ready = true;
-    this._sched = setInterval(() => this._music(), 40);
+    if (!this._given) this._sched = setInterval(() => this._music(), 40);
     this.nextT = ctx.currentTime + 0.1;
   }
 
@@ -263,7 +264,7 @@ export class Audio {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.dry.gain.setTargetAtTime(this.vol.sfx, t, 0.05); this.wet.gain.setTargetAtTime(0.38 * this.vol.sfx, t, 0.05);
     if (this.ambG) this.ambG.gain.setTargetAtTime(this.scene ? this.vol.amb : 0, t, 0.05);
-    if (this.score) { const m = this.vol.music / 0.8; this.score.bus.gain.setTargetAtTime(0.72 * m, t, 0.05); this.score.acc.gain.setTargetAtTime(0.85 * m, t, 0.05); this.score.rh.gain.setTargetAtTime(0.8 * m, t, 0.05); }
+    if (this.score) { const m = this.vol.music / 0.8; this.score.bus.gain.setTargetAtTime(0.72 * m, t, 0.05); this.score.acc.gain.setTargetAtTime(0.85 * m, t, 0.05); this.score.rh.gain.setTargetAtTime(0.42 * m, t, 0.05); }
   }
   ui() { if (!this.ready) return; this._tone('sine', 880, 1320, 0.07, 0.12, { wet: 0.4 }); }
   sizzle() { if (!this.ready) return; this._burst('highpass', 6000, 9000, 1, 0.05, 0.03, { pan: rand(-0.3, 0.3), wet: 0.3 }); }

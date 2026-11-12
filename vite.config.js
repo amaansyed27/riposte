@@ -8,12 +8,15 @@ const shots = () => ({
   apply: 'serve',
   configureServer(server) {
     server.middlewares.use('/__shot', (req, res) => {
-      const name = (new URL(req.url, 'http://x').searchParams.get('name') || 'shot').replace(/[^a-z0-9_-]/gi, '');
-      const dir = path.resolve('.shots');
+      const q = new URL(req.url, 'http://x').searchParams;
+      const name = (q.get('name') || 'shot').replace(/[^a-z0-9_-]/gi, '');
+      const ext = ['jpg', 'json', 'wav'].includes(q.get('ext')) ? q.get('ext') : 'jpg';
+      const dir = path.resolve('.shots', (q.get('dir') || '').replace(/[^a-z0-9_-]/gi, ''));
+      if (req.method === 'GET') { const p = path.join(dir, name + '.' + ext); if (!fs.existsSync(p)) { res.statusCode = 404; return res.end(); } return fs.createReadStream(p).pipe(res); }
       fs.mkdirSync(dir, { recursive: true });
       const chunks = [];
       req.on('data', (c) => chunks.push(c));
-      req.on('end', () => { fs.writeFileSync(path.join(dir, `${name}.jpg`), Buffer.concat(chunks)); res.end('ok'); });
+      req.on('end', () => { fs.writeFileSync(path.join(dir, `${name}.${ext}`), Buffer.concat(chunks)); res.end('ok'); });
     });
   },
 });

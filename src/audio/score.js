@@ -77,7 +77,8 @@ class Loop {
 }
 
 export class Score {
-  constructor(ctx, out, reverb) {
+  constructor(ctx, out, reverb, manual = false) {
+    this.manual = manual;                     // offline rendering: the caller ticks us, and the context is never 'running'
     this.ctx = ctx; this.ready = false; this.loops = {}; this.state = 'off'; this.I = 0; this.target = 0; this.rate = 1; this.pace = 0;
     this.tempoOn = false; this.muffled = false; this.dying = 0; this.lastAccent = {}; this.step = -1; this.free = 0;
     this.bus = ctx.createGain(); this.bus.gain.value = 0.62;
@@ -88,11 +89,11 @@ export class Score {
     // our own orchestra (accents) and drums land here
     this.acc = ctx.createGain(); this.acc.gain.value = 0.9; this.acc.connect(out);
     const aw = ctx.createGain(); aw.gain.value = 0.2; this.acc.connect(aw).connect(reverb);
-    this.rh = ctx.createGain(); this.rh.gain.value = 0.8; this.rh.connect(this.tone);
+    this.rh = ctx.createGain(); this.rh.gain.value = 0.42;   // drums sit under the bed: it already carries the pulse this.rh.connect(this.tone);
     const rw = ctx.createGain(); rw.gain.value = 0.06; this.rh.connect(rw).connect(reverb);
     const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1; this.noise = nb;
     this._last = ctx.currentTime;
-    this._iv = setInterval(() => this._tick(), 40);
+    if (!manual) this._iv = setInterval(() => this._tick(), 40);
   }
   async load(base = 'audio/') {
     for (const name of FILES) {
@@ -125,7 +126,7 @@ export class Score {
   }
   _tick() {
     const ctx = this.ctx, now = ctx.currentTime, dt = Math.min(0.2, now - this._last); this._last = now;
-    if (ctx.state !== 'running') return;
+    if (ctx.state !== 'running' && !this.manual) return;
     const S = STATES[this.state];
     // intensity rises fast and lets go slowly, so the music does not flap with every bolt
     const tgt = Math.max(S.floor || 0, this.target);
@@ -177,9 +178,9 @@ export class Score {
     const v = 0.35 + 0.65 * I;
     if (I > 0.12 && (s === 0 || s === 8)) this._taiko(t, dark ? 46 : 55, 0.85 * v);                       // halves
     if (I > 0.3 && (s === 4 || s === 12)) this._taiko(t, dark ? 52 : 62, 0.6 * v);                        // every beat
-    if (I > 0.3 && s % 2 === 0) this._tk(t, 0.10 * v, s % 4 === 0 ? 5200 : 7000);                         // eighths
-    if (I > 0.5 && s % 2 === 1) this._tk(t, 0.06 * v, 8500);                                              // sixteenths
-    if (I > 0.5 && (s === 4 || s === 12)) this._clack(t, 0.32 * v);                                       // backbeat
+    if (I > 0.3 && s % 2 === 0) this._tk(t, 0.035 * v, s % 4 === 0 ? 5200 : 7000);                         // eighths
+    if (I > 0.5 && s % 2 === 1) this._tk(t, 0.02 * v, 8500);                                              // sixteenths
+    if (I > 0.5 && (s === 4 || s === 12)) this._clack(t, 0.14 * v);                                       // backbeat
     if (I > 0.72 && (s === 6 || s === 7 || s === 14 || s === 15)) this._taiko(t, dark ? 62 : 74, 0.5 * v); // gallop
     if (I > 0.72 && s === 0 && bar % 2 === 0) this._brass(t, dark ? [-24, -17] : [-12, -5], 0.5, 0.2, 0.02, this.rh);
     if (I > 0.9 && s === 10) this._taiko(t, 98, 0.4 * v);
@@ -215,7 +216,7 @@ export class Score {
   }
   // kinds: bout, clear, boss, phase, win, riposte, kill, tempo, fall, ignite
   accent(kind) {
-    if (!this.ctx || this.ctx.state !== 'running') return;
+    if (!this.ctx || (this.ctx.state !== 'running' && !this.manual)) return;
     const t = this.ctx.currentTime + 0.01, gap = { riposte: 0.28, kill: 0.5 }[kind] || 0;
     if (gap && t - (this.lastAccent[kind] || 0) < gap) return; this.lastAccent[kind] = t;
     if (kind === 'riposte') { this._noiseHit(t, 'bandpass', 2400, 1400, 1.2, 0.002, 0.14, 0.22); this._timp(t, 98, 0.3); }

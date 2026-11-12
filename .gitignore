@@ -7,3 +7,6 @@ dist
 .v1
 
 .vercel
+
+# trailer master is too large for git
+media/*-master.mp4

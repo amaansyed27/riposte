@@ -53,7 +53,7 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Hit test is judged at the reticle (tight radius). On touch the finger rides the blade exactly like the mouse does.
 - Orbs: tracking eye with lids, wings, tail, cannon; chirps; they glance at a comrade's explosion. Streak lights lanterns down the colonnade. Moths gather at a lit blade. A visitor drifts in on the menus. At one guard left the eclipse beats.
 - Phone: Aim touch/tilt toggle on the blade page. Desktop: "Use your phone as the saber" pairs a phone by QR.
-- Live: https://riposte-iota.vercel.app
+- Live: https://riposte.amaansyed27.dev (also https://riposte-iota.vercel.app)
 - Open: a third critic round has not been run; real phone, gamepad, DualSense and audio remain untested.
 
 ## Play v3 (owner feedback: blade only stood up; a blade in the right place did not always repel)
@@ -111,3 +111,10 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - Gamepad: a stick push takes the blade and keeps it until the mouse moves (before, a centred stick handed control back to the mouse every frame, so the blade sat in the middle). DualSense gyro over WebHID now reads feature report 0x05 first, which is what switches a Bluetooth pad to the full 0x31 report. NOT tested on hardware yet.
 - Removed `letter-spacing: revert-layer` (squashed text after returning to the menu) and the helper lines: menu descriptions, pane descriptions, select fine print, tempo hint.
 - Dev server binds 127.0.0.1:5173 so `adb reverse` works for phone testing.
+
+## Trailer
+- `src/dev/trailer.js` (dev server only, `?nointro&trailer`) directs and captures the trailer: a shot list with scripted cameras (`app.cine`), blade poses (`app.pose = 'cine'`), seeded randomness, and canvas-drawn cards, saved frame by frame to `.shots/trailer/` so it is a true 60 fps. The render size is forced to 1920x1080 because the preview pane resets its viewport between turns.
+- Sound is not recorded live. Every call the game makes to its audio engine during capture goes on a per-shot tape; the tapes plus hand-placed music cues are replayed into an `OfflineAudioContext` running the same `Audio` and `Score` classes (`new Audio(ctx)`), then written as WAV. Cuts in the montage sit on the battle bed's bars (123.07 BPM).
+- `canvas.toBlob` is an idle task in the preview pane (about a second per frame); `toDataURL` is ten times faster.
+- Encode: `ffmpeg -framerate 60 -i .shots/trailer/f_%05d.jpg -i .shots/trailer/audio.wav -af loudnorm=I=-14:TP=-1.5 ...`. Rain and film grain make it expensive: 228 MB at crf 20 (git-ignored master), 40 MB at crf 26.
+- Bout drums were overpowering the bed ("metronome"): rhythm bus 0.8 -> 0.42, hat ticks cut to about a third, backbeat clack halved.

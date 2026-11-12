@@ -401,7 +401,7 @@ function poseTargets(dt) {
   const s = app.sword, t = app.time, portrait = app.aspect < 0.8;
   const th = Math.tan(THREE.MathUtils.degToRad(app.baseFov) / 2);
   const sway = (o) => (noise1(t * 0.5 + o) - 0.5);
-  if (app.pose === 'title') {
+  if (app.pose === 'cine') { app.poseFn(_r, _d, t); } else if (app.pose === 'title') {
     if (portrait) { _r.set(-0.10, 0.16, -1.2); _d.set(0.24, 0.80, -0.55); }
     else { _r.set(0.24, -0.13, -0.62); _d.set(-0.45, 0.50, -0.74); }      // hilt at the right, menu at the left
     _d.normalize(); _r.x += sway(1) * 0.03; _r.y += sway(2) * 0.03;
@@ -458,6 +458,7 @@ function frame(rdt, draw = true) {
   camera.position.set((noise1(t * 31) - 0.5) * sh * 0.09, (noise1(t * 29 + 7) - 0.5) * sh * 0.09 + Math.sin(t * 0.8) * 0.006, app.kickV * 0.035);
   camera.rotation.set((noise1(t * 27 + 3) - 0.5) * sh * 0.05 + app.kickV * 0.012, (noise1(t * 33 + 9) - 0.5) * sh * 0.05 + Math.sin(t * 0.33) * 0.004, (noise1(t * 25 + 5) - 0.5) * sh * 0.06);
   camera.fov = app.baseFov + app.fovPunch + (g.tempoLive > 0 ? -3 : 0);
+  if (app.cine) app.cine(camRig, camera);            // dev: a scripted camera (trailer capture)
   camera.updateProjectionMatrix();
   camRig.updateMatrixWorld(true);
   camera.getWorldPosition(app.camPos);
@@ -475,7 +476,7 @@ function frame(rdt, draw = true) {
     roll.el.style.transform = 'translate3d(0,' + roll.y.toFixed(1) + 'px,0)';
     if (roll.y < -roll.el.offsetHeight) closeCredits();
   }
-  camRig.rotation.set(0.105 + motion.y * 0.05 + app.lift * 0.14, -motion.x * 0.09, -motion.x * 0.03);
+  if (!app.cine) camRig.rotation.set(0.105 + motion.y * 0.05 + app.lift * 0.14, -motion.x * 0.09, -motion.x * 0.03);
   poseTargets(rdt);
   app.sword.update(rdt, app.time);
   g.update(gdt, rdt);
@@ -516,7 +517,7 @@ requestAnimationFrame(loop);
 
 // ---------- debug / capture harness (used by automated critics; harmless in production)
 window.__riposte = {
-  app,
+  app, frame, camRig, camera, canvas, THREE,
   manual(on = true) { manual = on; last = performance.now(); return manual; },
   step(dt = 1 / 60, n = 1) { for (let i = 0; i < n; i++) frame(dt, i === n - 1); return { t: +app.time.toFixed(3), state: app.sword.state, len: +app.sword.len.toFixed(3), power: +app.sword.power.toFixed(2), game: app.game.state }; },
   // simulate without drawing until fn() is true (or max frames); returns frames advanced
@@ -541,6 +542,7 @@ window.__riposte = {
   info: () => ({ state: app.game.state, bout: app.game.bout, score: app.game.score, combo: app.game.combo, integrity: app.game.integrity, enemies: app.game.enemies.length, bolts: app.game.bolts.incoming.length, sword: app.sword.state, quality: app.quality, fps: 0 }),
 };
 if (params.has('autoplay')) app.autoplay = true;
+if (import.meta.env.DEV && params.has('trailer')) import('./dev/trailer.js').then((m) => m.init(window.__riposte));
 
 // ---------- boot: compile every shader and fetch every bed behind the opening sequence, reporting progress
 async function preload(report) {
