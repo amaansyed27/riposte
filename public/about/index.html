@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About RIPOSTE — Free Lightsaber Browser Game, Trailer &amp; FAQ</title>
+  <meta name="description" content="RIPOSTE is a free 3D browser game where you deflect blaster bolts with an energy sword. Watch the trailer, see screenshots, controls, bosses and how it was built." />
+  <meta name="author" content="Amaan Syed" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1, max-snippet:-1" />
+  <meta name="theme-color" content="#03060b" />
+  <link rel="canonical" href="https://riposte.amaansyed27.dev/about/" />
+  <link rel="icon" href="/icons/icon-192.png" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="RIPOSTE" />
+  <meta property="og:url" content="https://riposte.amaansyed27.dev/about/" />
+  <meta property="og:title" content="About RIPOSTE — the browser game where you cannot strike" />
+  <meta property="og:description" content="A free lightsaber-style deflection game in 3D, built with three.js. Trailer, screenshots, controls and FAQ." />
+  <meta property="og:image" content="https://riposte.amaansyed27.dev/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://riposte.amaansyed27.dev/og.jpg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://riposte.amaansyed27.dev/about/#page",
+        "url": "https://riposte.amaansyed27.dev/about/",
+        "name": "About RIPOSTE",
+        "isPartOf": { "@id": "https://riposte.amaansyed27.dev/#website" },
+        "about": { "@id": "https://riposte.amaansyed27.dev/#game" },
+        "primaryImageOfPage": "https://riposte.amaansyed27.dev/og.jpg",
+        "video": { "@id": "https://riposte.amaansyed27.dev/#trailer" },
+        "breadcrumb": { "@type": "BreadcrumbList", "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "RIPOSTE", "item": "https://riposte.amaansyed27.dev/" },
+          { "@type": "ListItem", "position": 2, "name": "About", "item": "https://riposte.amaansyed27.dev/about/" }
+        ] }
+      },
+      {
+        "@type": "VideoObject",
+        "@id": "https://riposte.amaansyed27.dev/#trailer",
+        "name": "RIPOSTE — official trailer",
+        "description": "Gameplay and cinematic trailer for RIPOSTE, a free lightsaber-style deflection game in your browser. Every frame is captured from the real game.",
+        "thumbnailUrl": ["https://riposte.amaansyed27.dev/og.jpg"],
+        "uploadDate": "2026-11-12T19:00:00+05:30",
+        "duration": "PT1M27S",
+        "contentUrl": "https://riposte.amaansyed27.dev/trailer.mp4",
+        "embedUrl": "https://riposte.amaansyed27.dev/about/#trailer"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          { "@type": "Question", "name": "Is RIPOSTE free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. RIPOSTE is free to play in any modern browser at riposte.amaansyed27.dev, with no download, account or ads." } },
+          { "@type": "Question", "name": "Is RIPOSTE a Star Wars game?", "acceptedAnswer": { "@type": "Answer", "text": "No. It is an original game inspired by the classic lightsaber training scene, where you deflect blaster bolts with an energy sword. It is not affiliated with or endorsed by Lucasfilm, Disney or Star Wars." } },
+          { "@type": "Question", "name": "Can I use my phone as a lightsaber?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Open the game on a computer, choose Use your phone as the saber, scan the QR code and hold the phone like a hilt. The blade follows the phone's long axis, and in menus the phone becomes a remote." } },
+          { "@type": "Question", "name": "Does it work on mobile?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. On a phone or tablet you play with your finger, and you can install it to your home screen so it opens fullscreen and works offline." } },
+          { "@type": "Question", "name": "Does it support controllers?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Any gamepad the browser recognises works for aiming and menus. DualSense motion aiming is experimental in Chrome and Edge." } },
+          { "@type": "Question", "name": "What was it built with?", "acceptedAnswer": { "@type": "Answer", "text": "three.js on WebGL 2 for the graphics, the Web Audio API for every sound effect and the adaptive score, PeerJS for the phone link and Vite for the build. It was written by Amaan Syed with Claude Fable 5.2." } },
+          { "@type": "Question", "name": "Does the game end?", "acceptedAnswer": { "@type": "Answer", "text": "No. It is an endless arcade survival game: bouts get faster and denser, a master boss arrives every fourth bout, and the run ends when your guard breaks." } }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root { --bg: #03060b; --ink: #e6eef9; --dim: rgba(214,228,245,.62); --line: rgba(214,228,245,.12); --blade: 90,255,150; }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body { margin: 0; color: var(--ink); font: 17px/1.65 "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+    a { color: rgb(var(--blade)); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+    header { position: relative; }
+    header img { display: block; width: 100%; height: auto; }
+    header .play { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); }
+    .btn { display: inline-block; padding: 14px 30px; border: 1px solid rgba(var(--blade), .8); border-radius: 999px; color: #fff; text-decoration: none; letter-spacing: .3em; font-size: 13px; text-transform: uppercase; background: rgba(var(--blade), .14); box-shadow: 0 0 30px rgba(var(--blade), .25); }
+    h1 { font-weight: 200; letter-spacing: .08em; font-size: clamp(30px, 4.6vw, 52px); line-height: 1.15; margin: 48px 0 10px; }
+    h2 { font-weight: 300; letter-spacing: .12em; text-transform: uppercase; font-size: 17px; margin: 56px 0 12px; color: #fff; }
+    h3 { font-weight: 500; font-size: 17px; margin: 22px 0 4px; }
+    p, li { color: var(--dim); }
+    strong { color: var(--ink); font-weight: 500; }
+    .lede { font-size: 20px; color: var(--ink); }
+    video { width: 100%; border-radius: 10px; background: #000; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
+    figure { margin: 0; } figure img { width: 100%; height: auto; border-radius: 8px; display: block; }
+    figcaption { font-size: 14px; color: var(--dim); margin-top: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    td, th { text-align: left; padding: 10px 8px; border-top: 1px solid var(--line); vertical-align: top; color: var(--dim); }
+    th { color: var(--ink); font-weight: 500; white-space: nowrap; }
+    details { border-top: 1px solid var(--line); padding: 12px 0; }
+    summary { cursor: pointer; color: var(--ink); }
+    footer { margin: 70px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--dim); }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/og.jpg" width="1200" height="630" alt="RIPOSTE: a green energy blade standing in front of an eclipse over a flooded stone court" />
+    <a class="btn play" href="/">Play free</a>
+  </header>
+
+  <main class="wrap">
+    <h1>RIPOSTE: the lightsaber-style browser game where you cannot strike</h1>
+    <p class="lede">Bolts come at you. You have no attack. Put your blade in their path and they fly back at whoever fired them. Swing hard and it is a <strong>riposte</strong>.</p>
+    <p>RIPOSTE is a free 3D action game that runs in your web browser. There is nothing to download and no account. It plays on desktop and mobile, with a mouse, a finger, a gamepad, or your phone held like a sword hilt.</p>
+    <p><a class="btn" href="/">Play RIPOSTE now</a></p>
+
+    <h2 id="trailer">Trailer</h2>
+    <video controls preload="metadata" playsinline poster="/og.jpg" width="1280" height="720">
+      <source src="/trailer.mp4" type="video/mp4" />
+      <a href="/trailer.mp4">Download the RIPOSTE trailer (MP4)</a>
+    </video>
+    <p>Eighty-seven seconds, every frame captured from the real game, scored by the game's own adaptive music and sound.</p>
+
+    <h2>A game about one moment</h2>
+    <p>Most action games hand you a weapon. RIPOSTE hands you an answer. Every sword fan knows the scene: a hovering training orb, a blaster bolt, a blade that turns it aside. This game is built around making that one moment feel as good as it does in your head: the hum of the blade, the crack of the bolt, the orb bursting when its own shot comes home.</p>
+    <div class="grid">
+      <figure><img src="/press/ignite.jpg" width="1280" height="582" loading="lazy" alt="An energy sword igniting in a rainy stone court under an eclipse" /><figcaption>The blade ignites, hums, clashes and retracts.</figcaption></figure>
+      <figure><img src="/press/return.jpg" width="1280" height="582" loading="lazy" alt="A blaster bolt deflected back into a hovering training orb" /><figcaption>Deflection is physical: blade in the path, bolt goes home.</figcaption></figure>
+    </div>
+
+    <h2>How it plays</h2>
+    <ul>
+      <li><strong>Read the ring.</strong> A closing ring shows where and when each bolt will land. Be there.</li>
+      <li><strong>Riposte.</strong> Swing through a bolt fast and it returns at double strength.</li>
+      <li><strong>Three guard.</strong> A bolt that gets through costs one. Clear a bout and one comes back.</li>
+      <li><strong>Tempo.</strong> Every return fills it. When it is full, time bends and each return echoes to a second target.</li>
+      <li><strong>Endless.</strong> Bouts grow faster and denser until you fall. Ranks run from Novice to Légende.</li>
+      <li><strong>Five blades.</strong> Azure, Verdant, Violet, Ember and Blanc.</li>
+    </ul>
+
+    <h2>The masters</h2>
+    <p>Every fourth bout, a master descends out of the eclipse. Then they return, harder.</p>
+    <div class="grid">
+      <figure><img src="/press/maestro.jpg" width="1280" height="582" loading="lazy" alt="The Maestro, a boss orb with conductor arms" /><figcaption><strong>The Maestro.</strong> It conducts. You answer.</figcaption></figure>
+      <figure><img src="/press/hydra.jpg" width="1280" height="582" loading="lazy" alt="The Hydra, a boss orb shielded by leashed drones" /><figcaption><strong>The Hydra.</strong> Cut the leashes. Then the heart.</figcaption></figure>
+      <figure><img src="/press/bastion.jpg" width="1280" height="582" loading="lazy" alt="The Bastion, an armoured geodesic boss" /><figcaption><strong>The Bastion.</strong> Only a hard swing cracks it.</figcaption></figure>
+      <figure><img src="/press/kill.jpg" width="1280" height="582" loading="lazy" alt="A boss bursting after its own volley is returned" /><figcaption>Send a master's volley home and it falls.</figcaption></figure>
+    </div>
+
+    <h2>Ways to hold the blade</h2>
+    <table>
+      <tr><th>Mouse or touch</th><td>Your pointer is a point on the blade and the hilt trails behind it, so the blade leans the way you move.</td></tr>
+      <tr><th>Phone as the saber</th><td>Choose <em>Use your phone as the saber</em>, scan the code, hold your phone like a hilt. The blade follows the phone's long axis; in menus the phone is a remote. Peer to peer over WebRTC.</td></tr>
+      <tr><th>Gamepad</th><td>A stick aims, A confirms and sheathes, B goes back, Start pauses. DualSense motion aiming is experimental in Chrome and Edge.</td></tr>
+      <tr><th>Keyboard</th><td>Space sheathes and ignites, Esc pauses, M mutes, F goes fullscreen.</td></tr>
+    </table>
+
+    <h2>Graphics and sound, all in the browser</h2>
+    <p>RIPOSTE is a showcase of what a web game can look like. The flooded court, the eclipse, the orbs and the hilt are generated in code and rendered with <strong>three.js on WebGL 2</strong>: HDR bloom, a planar mirror reflection on the water, rain, lightning, shockwaves and film grain. Every sound effect is synthesised live with the <strong>Web Audio API</strong>, and the orchestral score is adaptive: the game's state picks the piece and its intensity brings layers in and out, with drums locked to the music's beat.</p>
+    <p>It installs as an app (a progressive web app) on phones and computers and then works offline.</p>
+
+    <h2>Who made it</h2>
+    <p>RIPOSTE is an indie game by <strong>Amaan Syed</strong>, co-founder of Dawnlight Labs, written with <strong>Claude Fable 5.2</strong>. The source is on <a href="https://github.com/amaansyed27/riposte">GitHub</a>.</p>
+    <figure><img src="/press/name.jpg" width="1280" height="582" loading="lazy" alt="Title card: A game by Amaan Syed" /></figure>
+
+    <h2>Questions</h2>
+    <details open><summary>Is RIPOSTE free?</summary><p>Yes. Free to play in any modern browser, with no download, account or ads.</p></details>
+    <details><summary>Is RIPOSTE a Star Wars game?</summary><p>No. It is an original game inspired by the classic lightsaber training scene. It is not affiliated with or endorsed by Lucasfilm, Disney or Star Wars.</p></details>
+    <details><summary>Can I use my phone as a lightsaber?</summary><p>Yes. Open the game on a computer, choose <em>Use your phone as the saber</em>, scan the QR code and hold the phone like a hilt.</p></details>
+    <details><summary>Does it work on mobile?</summary><p>Yes. Play with your finger, or install it to your home screen to play fullscreen and offline.</p></details>
+    <details><summary>Does it support controllers?</summary><p>Yes. Any gamepad your browser recognises works. DualSense motion aiming is experimental in Chrome and Edge.</p></details>
+    <details><summary>What was it built with?</summary><p>three.js and WebGL 2, the Web Audio API, PeerJS and Vite. Written by Amaan Syed with Claude Fable 5.2.</p></details>
+    <details><summary>Does the game end?</summary><p>No. It is endless arcade survival: a master arrives every fourth bout, and the run ends when your guard breaks.</p></details>
+
+    <p style="margin-top:40px"><a class="btn" href="/">Play RIPOSTE</a></p>
+  </main>
+
+  <footer class="wrap">
+    © 2026 Amaan Syed · Dawnlight Labs · Built with Claude.
+    Music: four orchestral pieces by Luis_Humanoide, Pixabay Content License.
+    RIPOSTE is an original fan-inspired game and is not affiliated with or endorsed by Lucasfilm, Disney or Star Wars. Lightsaber and Star Wars are trademarks of their owners.
+  </footer>
+</body>
+</html>

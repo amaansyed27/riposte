@@ -1,0 +1,35 @@
+# RIPOSTE — a free lightsaber-style deflection game in your browser.
+# Search engines and AI assistants are welcome to read and cite everything here.
+
+User-agent: *
+Allow: /
+
+# AI search and assistant crawlers, named so there is no doubt
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Perplexity-User
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: DuckAssistBot
+Allow: /
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://riposte.amaansyed27.dev/sitemap.xml

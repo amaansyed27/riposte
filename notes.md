@@ -118,3 +118,11 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - `canvas.toBlob` is an idle task in the preview pane (about a second per frame); `toDataURL` is ten times faster.
 - Encode: `ffmpeg -framerate 60 -i .shots/trailer/f_%05d.jpg -i .shots/trailer/audio.wav -af loudnorm=I=-14:TP=-1.5 ...`. Rain and film grain make it expensive: 228 MB at crf 20 (git-ignored master), 40 MB at crf 26.
 - Bout drums were overpowering the bed ("metronome"): rhythm bus 0.8 -> 0.42, hat ticks cut to about a third, backbeat clack halved.
+
+## Search and sharing
+- Canonical host is https://riposte.amaansyed27.dev. `vercel.json` 301s the stable `*.vercel.app` aliases there (per-deployment preview URLs are left alone).
+- `index.html` head: 59-char title, 152-char description, Open Graph + Twitter large card with `public/og.jpg` (1200x630, unhashed path), and one JSON-LD graph: WebSite, VideoGame+WebApplication, VideoObject (trailer), Person, Organization. No ratings: Google's game rich result needs aggregateRating/review, and there are none to state honestly.
+- The game is a canvas, so crawlers and AI assistants read `public/about/index.html` (static, no JS): pitch, trailer, stills, controls, FAQ with FAQPage markup. A `<noscript>` summary and the menu's "About the game" link point to it.
+- `robots.txt` allows everything and names the AI crawlers; `sitemap.xml` carries image and video entries; `llms.txt` follows llmstxt.org.
+- Star Wars / lightsaber appear as descriptive keywords (owner's call), always beside the not-affiliated line, never in the game's name.
+- Service worker: only `/` and `/index.html` refresh the offline shell (otherwise opening robots.txt or /about/ would overwrite it). Cache bumped to `riposte-v2`.

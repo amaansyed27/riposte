@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    { "source": "/:path*", "has": [{ "type": "host", "value": "riposte-iota.vercel.app" }], "destination": "https://riposte.amaansyed27.dev/:path*", "permanent": true },
+    { "source": "/:path*", "has": [{ "type": "host", "value": "riposte-amaan-syeds-projects.vercel.app" }], "destination": "https://riposte.amaansyed27.dev/:path*", "permanent": true },
+    { "source": "/:path*", "has": [{ "type": "host", "value": "riposte-git-main-amaan-syeds-projects.vercel.app" }], "destination": "https://riposte.amaansyed27.dev/:path*", "permanent": true }
+  ],
+  "headers": [
+    { "source": "/llms.txt", "headers": [{ "key": "Content-Type", "value": "text/markdown; charset=utf-8" }] },
+    { "source": "/(og.jpg|press/.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] }
+  ]
+}

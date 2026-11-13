@@ -6,9 +6,9 @@
 
 **You cannot strike. Only return.**
 
-A browser game where you have no attack. Bolts come at you; put your blade in their path and they fly back at whoever fired them.
+A free 3D browser game where you have no attack. Blaster bolts come at you; put your energy sword in their path and they fly back at whoever fired them. A lightsaber-style deflection game built with three.js and WebGL 2.
 
-### [▶ &nbsp;Play it now](https://riposte.amaansyed27.dev) &nbsp;·&nbsp; [🎬 &nbsp;Watch the trailer](https://riposte.amaansyed27.dev/trailer.mp4)
+### [▶ &nbsp;Play it now](https://riposte.amaansyed27.dev) &nbsp;·&nbsp; [🎬 &nbsp;Watch the trailer](https://riposte.amaansyed27.dev/trailer.mp4) &nbsp;·&nbsp; [ℹ &nbsp;About &amp; FAQ](https://riposte.amaansyed27.dev/about/)
 
 No install, no account, nothing to download. Desktop and mobile.
 

@@ -1,7 +1,40 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "riposte", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 },
-    { "name": "riposte-v1", "runtimeExecutable": "npx", "runtimeArgs": ["vite", ".v1", "--port", "5174", "--strictPort"], "port": 5174 }
+    {
+      "name": "riposte",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "riposte-v1",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        ".v1",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "riposte-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4173",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 4173
+    }
   ]
 }

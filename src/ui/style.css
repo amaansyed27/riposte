@@ -498,3 +498,4 @@ input[type=range].sel, input[type=range]:focus-visible { outline: 1px solid rgba
 }
 #controls.page, #end.page, #paused.page { background: linear-gradient(90deg, rgba(2,4,9,.95) 0%, rgba(2,4,9,.84) 40%, rgba(2,4,9,.4) 100%); justify-content: initial; }
 .tab:not(.on)::before { box-shadow: none; }
+#intro .legal a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(214,228,245,.3); pointer-events: auto; }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url>
+    <loc>https://riposte.amaansyed27.dev/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/og.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://riposte.amaansyed27.dev/about/</loc>
+    <lastmod>2026-11-13</lastmod>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/return.jpg</image:loc></image:image>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/ignite.jpg</image:loc></image:image>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/maestro.jpg</image:loc></image:image>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/hydra.jpg</image:loc></image:image>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/bastion.jpg</image:loc></image:image>
+    <image:image><image:loc>https://riposte.amaansyed27.dev/press/kill.jpg</image:loc></image:image>
+    <video:video>
+      <video:thumbnail_loc>https://riposte.amaansyed27.dev/og.jpg</video:thumbnail_loc>
+      <video:title>RIPOSTE — official trailer</video:title>
+      <video:description>Gameplay and cinematic trailer for RIPOSTE, a free lightsaber-style deflection game in your browser. Every frame is captured from the real game.</video:description>
+      <video:content_loc>https://riposte.amaansyed27.dev/trailer.mp4</video:content_loc>
+      <video:duration>87</video:duration>
+      <video:publication_date>2026-11-12T19:00:00+05:30</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+</urlset>
