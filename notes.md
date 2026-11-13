@@ -126,3 +126,4 @@ Run: `npm run dev` (http://localhost:5173). Build: `npm run build`. Repo: github
 - `robots.txt` allows everything and names the AI crawlers; `sitemap.xml` carries image and video entries; `llms.txt` follows llmstxt.org.
 - Star Wars / lightsaber appear as descriptive keywords (owner's call), always beside the not-affiliated line, never in the game's name.
 - Service worker: only `/` and `/index.html` refresh the offline shell (otherwise opening robots.txt or /about/ would overwrite it). Cache bumped to `riposte-v2`.
+- Host redirects only matched with the object form (`"value": { "eq": host }`, `source: "/(.*)"`); the plain-string form deployed fine but never fired. Pushing to GitHub does not deploy: run `vercel --prod --yes`. `.vercelignore` keeps `media/` (228 MB trailer master) out of the upload, which otherwise fails the 100 MB limit.
