@@ -2,3 +2,8 @@ media
 .shots
 .v1
 tools
+.env*
+dist
+.vite
+*.log
+node_modules
